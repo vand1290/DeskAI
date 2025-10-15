@@ -51,11 +51,22 @@ function validatePath(filePath: string): string {
   "createDir": true,
   "removeDir": false,
   "removeFile": false,
-  "renameFile": false,
+  "renameFile": true,
   "exists": true,
-  "scope": ["$APPDATA/deskai/out/*"]
+  "scope": ["$APPDATA/deskai/out/*", "$APPDATA/deskai/documents/*"]
+},
+"dialog": {
+  "all": false,
+  "open": true,
+  "save": true
 }
 ```
+
+**Note on Folder Selection:**
+- File dialog permissions allow users to select folders
+- Selected folders are accessed through validated paths only
+- No automatic access to system directories
+- User must explicitly grant access via dialog
 
 ### 3. Tool Allowlisting
 
@@ -75,10 +86,19 @@ export class ToolRegistry {
 ```
 
 **Allowed Tools:**
+
+*Basic Tools:*
 - `file_write` - Write to out/ directory only
 - `file_read` - Read from out/ directory only
 - `calculator` - Sanitized arithmetic operations
 - `text_analysis` - Read-only text analysis
+
+*Secretary Tools:*
+- `file_manager` - Manage files with metadata (restricted to user-selected folders)
+- `document_processor` - Extract text from PDFs and documents (offline libraries)
+- `writing` - Create and edit documents (sandboxed to out/documents/)
+- `ocr` - Extract text from images using Tesseract.js (offline)
+- `handwriting` - Recognize handwriting (offline via Tesseract.js)
 
 ### 4. Input Sanitization
 
@@ -162,11 +182,26 @@ if (sanitized !== params.expression) {
    - Keep dependencies updated
    - Regular security audits with `npm audit`
    - Minimize dependency count
+   - **New dependencies for secretary features:**
+     - `pdf-parse`: PDF parsing library (no network, pure JS)
+     - `tesseract.js`: OCR library (offline after initial language data download)
 
 3. **Tauri Updates**
    - Keep Tauri version current
    - Monitor Tauri security advisories
    - Test security features after updates
+
+4. **OCR and PDF Libraries**
+   - Tesseract.js downloads language data on first use (requires internet once)
+   - After initial setup, fully offline
+   - pdf-parse is pure JavaScript with no network dependencies
+   - Both libraries process user files locally without external API calls
+
+5. **User-Selected Folders**
+   - File manager can access folders selected via dialog
+   - Path validation prevents traversal attacks
+   - No automatic access to sensitive directories
+   - User maintains control over which folders are accessible
 
 ## Best Practices for Extension
 
