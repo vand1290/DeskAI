@@ -1,0 +1,25 @@
+{
+  "name": "deskai",
+  "version": "0.1.0",
+  "description": "Offline meta-agent that routes user requests to local models and tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:backend && npm run build:ui",
+    "build:backend": "tsc --project tsconfig.backend.json",
+    "build:ui": "cd ui && npm run build",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "ui:dev": "cd ui && npm run dev",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.5.9",
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.11.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {}
+}
