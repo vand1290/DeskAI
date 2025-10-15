@@ -183,6 +183,29 @@ export class ToolRegistry {
     this.registerTool(new FileReadTool());
     this.registerTool(new CalculatorTool());
     this.registerTool(new TextAnalysisTool());
+    
+    // Register secretary tools (lazy loading to avoid import cycles)
+    this.registerSecretaryTools();
+  }
+
+  private registerSecretaryTools(): void {
+    try {
+      // Dynamically import and register secretary tools
+      const { FileManagerTool } = require('./tools/filemanager');
+      const { DocumentTool } = require('./tools/document');
+      const { WritingTool } = require('./tools/writing');
+      const { OCRTool } = require('./tools/ocr');
+      const { HandwritingTool } = require('./tools/handwriting');
+
+      this.registerTool(new FileManagerTool());
+      this.registerTool(new DocumentTool());
+      this.registerTool(new WritingTool());
+      this.registerTool(new OCRTool());
+      this.registerTool(new HandwritingTool());
+    } catch (error) {
+      // Secretary tools not available - continue with basic tools
+      console.warn('Secretary tools not loaded:', error);
+    }
   }
 
   registerTool(tool: Tool): void {
