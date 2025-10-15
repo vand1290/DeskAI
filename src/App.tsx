@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import ModelSelector from './components/ModelSelector';
 import ChatInterface from './components/ChatInterface';
 import ToolPanel from './components/ToolPanel';
-
-interface AvailableModel {
-  id: string;
-  name: string;
-  description: string;
-  capabilities: string[];
-}
+import { getAvailableModels, getAvailableTools, routeRequest, executeTool, type AvailableModel } from './services/api';
 
 interface Message {
   id: string;
@@ -32,7 +25,7 @@ function App() {
 
   const loadAvailableModels = async () => {
     try {
-      const availableModels = await invoke<AvailableModel[]>('get_available_models');
+      const availableModels = await getAvailableModels();
       setModels(availableModels);
     } catch (error) {
       console.error('Failed to load models:', error);
@@ -41,7 +34,7 @@ function App() {
 
   const loadAvailableTools = async () => {
     try {
-      const availableTools = await invoke<string[]>('get_available_tools');
+      const availableTools = await getAvailableTools();
       setTools(availableTools);
     } catch (error) {
       console.error('Failed to load tools:', error);
@@ -59,12 +52,10 @@ function App() {
     setIsLoading(true);
 
     try {
-      const response = await invoke<{ response: string; model: string }>('route_request', {
-        request: {
-          prompt,
-          model: selectedModel,
-          temperature: 0.7,
-        },
+      const response = await routeRequest({
+        prompt,
+        model: selectedModel,
+        temperature: 0.7,
       });
 
       const assistantMessage: Message = {
@@ -85,11 +76,9 @@ function App() {
   const handleToolExecution = async (tool: string) => {
     setIsLoading(true);
     try {
-      const response = await invoke<{ result: string; tool: string }>('execute_tool', {
-        request: {
-          tool,
-          parameters: {},
-        },
+      const response = await executeTool({
+        tool,
+        parameters: {},
       });
 
       const toolMessage: Message = {
