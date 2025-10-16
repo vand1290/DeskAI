@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeskAI - Your Professional Helpdesk</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DeskAI</h1>
+            <p class="subtitle">Your Professional Helpdesk with Adaptive Learning</p>
+        </header>
+
+        <main>
+            <!-- Learning Mode Controls -->
+            <section class="card learning-controls">
+                <h2>🧠 Learning Mode</h2>
+                <div class="control-group">
+                    <label class="switch">
+                        <input type="checkbox" id="learningToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span id="learningStatus">Learning Mode: Enabled</span>
+                </div>
+                <p class="info">
+                    <small>
+                        🔒 All learning happens locally on your device. No data is sent to external servers.
+                    </small>
+                </p>
+            </section>
+
+            <!-- Statistics -->
+            <section class="card statistics">
+                <h2>📊 Learning Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalTools">0</div>
+                        <div class="stat-label">Tools Tracked</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalInteractions">0</div>
+                        <div class="stat-label">Total Interactions</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="workflowPatterns">0</div>
+                        <div class="stat-label">Workflow Patterns</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="lastUpdated">Never</div>
+                        <div class="stat-label">Last Updated</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Suggestions -->
+            <section class="card suggestions">
+                <h2>💡 Adaptive Suggestions</h2>
+                <div id="suggestionsContainer">
+                    <p class="empty-state">Start using tools to see personalized suggestions!</p>
+                </div>
+            </section>
+
+            <!-- Tools Demo -->
+            <section class="card tools">
+                <h2>🛠️ Available Tools</h2>
+                <p class="info">Click on tools to simulate usage and train the learning mode.</p>
+                <div class="tools-grid">
+                    <button class="tool-button" onclick="useTool('Create Ticket')">
+                        📝 Create Ticket
+                    </button>
+                    <button class="tool-button" onclick="useTool('Search Knowledge Base')">
+                        🔍 Search Knowledge Base
+                    </button>
+                    <button class="tool-button" onclick="useTool('Assign to Team')">
+                        👥 Assign to Team
+                    </button>
+                    <button class="tool-button" onclick="useTool('Send Email')">
+                        ✉️ Send Email
+                    </button>
+                    <button class="tool-button" onclick="useTool('Update Status')">
+                        ✅ Update Status
+                    </button>
+                    <button class="tool-button" onclick="useTool('Add Note')">
+                        📄 Add Note
+                    </button>
+                    <button class="tool-button" onclick="useTool('Generate Report')">
+                        📊 Generate Report
+                    </button>
+                    <button class="tool-button" onclick="useTool('Close Ticket')">
+                        ✔️ Close Ticket
+                    </button>
+                </div>
+            </section>
+
+            <!-- Learned Data Review -->
+            <section class="card review">
+                <h2>📚 Review Learned Data</h2>
+                <button class="btn btn-secondary" onclick="showLearnedData()">
+                    View Learned Preferences
+                </button>
+                <button class="btn btn-secondary" onclick="exportData()">
+                    Export Data
+                </button>
+                <button class="btn btn-danger" onclick="confirmReset()">
+                    Reset Learning Data
+                </button>
+                <div id="learnedDataContainer" class="data-container hidden"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for confirmation -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>⚠️ Confirm Reset</h3>
+            <p>Are you sure you want to reset all learned data? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="resetLearning()">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
