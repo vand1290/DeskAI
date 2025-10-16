@@ -56,10 +56,12 @@ const ocrProcessor = new OCRProcessor();
 const searchEngine = new SearchEngine();
 const dataLinker = new DataLinker();
 
-await ocrProcessor.initialize();
+// Initialize data linker (lightweight, doesn't need network)
 await dataLinker.initialize();
 
-console.log('DeskAI services initialized');
+// Note: OCR processor initializes lazily when first needed
+// This avoids network requests at startup
+console.log('DeskAI services initialized (OCR will initialize on first use)');
 
 // Routes
 
