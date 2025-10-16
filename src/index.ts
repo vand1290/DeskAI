@@ -1,6 +1,6 @@
-import { MemoryManager } from './memory';
-import { Agent } from './agent';
-import { Router } from './router';
+import { MemoryManager } from './memory.js';
+import { Agent } from './agent.js';
+import { Router } from './router.js';
 
 /**
  * Initialize and export the DeskAI system
@@ -20,6 +20,6 @@ export async function initializeDeskAI(dataDir: string = './out') {
 }
 
 export { MemoryManager, Agent, Router };
-export * from './memory';
-export * from './agent';
-export * from './router';
+export * from './memory.js';
+export * from './agent.js';
+export * from './router.js';

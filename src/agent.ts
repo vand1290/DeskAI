@@ -1,4 +1,4 @@
-import { MemoryManager, Message } from './memory';
+import { MemoryManager, Message } from './memory.js';
 
 export interface AgentConfig {
   memoryEnabled: boolean;

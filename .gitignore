@@ -1,7 +1,9 @@
 node_modules/
 dist/
 dist-ui/
+dist-examples/
 out/
+examples/data/
 *.log
 .DS_Store
 .env

@@ -1,5 +1,5 @@
-import { MemoryManager } from './memory';
-import { Agent } from './agent';
+import { MemoryManager } from './memory.js';
+import { Agent } from './agent.js';
 
 export interface RouterRequest {
   action: string;
