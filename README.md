@@ -13,9 +13,10 @@ DeskAI is an offline meta-agent that routes user requests to local models and to
 - ✅ **100% Offline** - No network calls, all processing on-device
 - ✅ **Deterministic Behavior** - Reproducible results for the same inputs
 - ✅ **Privacy First** - Your data never leaves your machine
-- ✅ **Secure by Design** - Allowlisted tools, filesystem restricted to `out/` directory
+- ✅ **Secure by Design** - Allowlisted tools, filesystem restricted to sandboxed directories
 - ✅ **Windows Packaging** - Distributable as a Windows .exe via Tauri
 - ✅ **Local Model Support** - Interface for plugging in your own local model runners
+- ✅ **Personal Secretary Tools** - Document processing, OCR, handwriting recognition, file management, and writing tools
 
 ## Architecture
 
@@ -118,10 +119,139 @@ The agent will:
 
 ### Available Tools
 
+#### Basic Tools
 - **file_write** - Write content to files in the `out/` directory
 - **file_read** - Read content from files in the `out/` directory
 - **calculator** - Perform arithmetic calculations
 - **text_analysis** - Analyze text properties (word count, character count, etc.)
+
+#### Personal Secretary Tools
+
+##### 📁 File Manager
+Organize and manage your files with ease:
+- List files in directories with metadata
+- Sort files by name, date, size, or client
+- Add custom metadata (tags, categories, client names)
+- Search files by name or metadata
+- Auto-organize files into client folders
+
+**Usage:**
+```javascript
+// List files
+file_manager({ action: 'list', folderPath: 'out/' })
+
+// Sort by date
+file_manager({ action: 'sort', folderPath: 'out/', sortBy: 'date', order: 'desc' })
+
+// Add metadata
+file_manager({ 
+  action: 'addMetadata', 
+  filePath: 'out/report.pdf', 
+  metadata: { client: 'Acme Corp', tags: ['important', 'Q4'] }
+})
+
+// Search
+file_manager({ action: 'search', folderPath: 'out/', query: 'important' })
+```
+
+##### 📄 Document Processor
+Extract and analyze document content:
+- Extract text from PDFs (pdf-parse - fully offline)
+- Read text files
+- Summarize documents
+- Extract structured data (dates, emails, amounts)
+- Full-text search within documents
+- Get document metadata
+
+**Usage:**
+```javascript
+// Extract from PDF
+document_processor({ action: 'extractPDF', filePath: 'out/document.pdf' })
+
+// Extract emails from text
+document_processor({ 
+  action: 'extractData', 
+  text: 'Contact us at support@example.com', 
+  dataType: 'emails' 
+})
+
+// Search within document
+document_processor({ 
+  action: 'search', 
+  text: documentContent, 
+  query: 'important term' 
+})
+```
+
+##### ✍️ Writing Tool
+Create and edit documents with templates:
+- Create documents in .txt or .md format
+- Edit existing documents
+- Format as markdown or plain text
+- Use built-in templates (business letter, memo, meeting notes)
+- Auto-save functionality
+
+**Usage:**
+```javascript
+// Create document
+writing({ 
+  action: 'create', 
+  title: 'Meeting Notes', 
+  content: '# Notes\n\nDiscussion points...', 
+  format: 'md' 
+})
+
+// Use template
+writing({ action: 'useTemplate', templateName: 'business_letter' })
+
+// Format document
+writing({ 
+  action: 'format', 
+  content: '# Title\n\n**Bold**', 
+  style: 'plain' 
+})
+```
+
+##### 🔍 OCR Tool
+Extract text from images using Tesseract.js:
+- Support for JPG, PNG, BMP, WebP formats
+- Multi-language support (English, German, French, Spanish, and more)
+- Extract text with layout information (bounding boxes)
+- Batch process multiple images
+- Image preprocessing for better accuracy
+
+**Usage:**
+```javascript
+// Extract text from image
+ocr({ action: 'extract', imagePath: 'out/scan.jpg', language: 'eng' })
+
+// Get supported languages
+ocr({ action: 'languages' })
+
+// Batch process
+ocr({ action: 'batch', imagePaths: ['image1.jpg', 'image2.jpg'] })
+```
+
+##### ✏️ Handwriting Recognition
+Specialized OCR for handwritten text:
+- Enhanced recognition for handwriting
+- Confidence scoring for extracted text
+- Correction suggestions for low-confidence words
+- Support for cursive, print, and mixed writing
+- Validation of recognition quality
+
+**Usage:**
+```javascript
+// Recognize handwriting
+handwriting({ action: 'recognize', imagePath: 'out/handwritten.jpg' })
+
+// Validate recognition
+handwriting({ 
+  action: 'validate', 
+  text: recognizedText, 
+  imagePath: 'out/handwritten.jpg' 
+})
+```
 
 ### Supported Models (Stubs)
 
@@ -256,6 +386,14 @@ interface LocalModel {
 5. Test desktop app: `npm run tauri:dev`
 6. Build for production: `npm run tauri:build`
 
+## Personal Secretary UI
+
+The application includes a dedicated secretary mode accessible via the "Secretary Tools" button in the header:
+
+1. **Secretary Dashboard** - Grid view of all available tools
+2. **Individual Tool Interfaces** - Dedicated UI for each tool with intuitive controls
+3. **Easy Navigation** - Switch between Agent and Secretary modes seamlessly
+
 ## Troubleshooting
 
 ### Build Issues
@@ -266,6 +404,10 @@ interface LocalModel {
 **Error: Node version too old**
 - Install Node.js 18+ from https://nodejs.org/
 
+**Error: npm install fails**
+- Try `npm install --force` if there are peer dependency conflicts
+- Clear npm cache: `npm cache clean --force`
+
 ### Runtime Issues
 
 **Tools not working**
@@ -275,6 +417,21 @@ interface LocalModel {
 **Models not loading**
 - Verify model stubs are registered in `ModelRegistry`
 - For real models, ensure your local model runner is running
+
+**OCR not working**
+- Tesseract.js downloads language data on first use
+- Ensure internet connection for initial setup, then fully offline
+- Supported image formats: JPG, PNG, BMP, WebP
+
+**PDF extraction fails**
+- Ensure the PDF is not encrypted
+- Check that the file path is correct and accessible
+- Some PDFs with complex layouts may not extract perfectly
+
+**File manager can't access folders**
+- Check that folder paths are correct
+- Ensure the application has read/write permissions
+- On Windows, use forward slashes or double backslashes in paths
 
 ## Contributing
 

@@ -9,5 +9,12 @@ module.exports = {
     '!src/__tests__/**'
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  verbose: true
+  verbose: true,
+  transformIgnorePatterns: [
+    'node_modules/(?!(pdf-parse|pdfjs-dist)/)'
+  ],
+  moduleNameMapper: {
+    '^pdf-parse$': '<rootDir>/src/__mocks__/pdf-parse.ts',
+    '^tesseract\\.js$': '<rootDir>/src/__mocks__/tesseract.js.ts'
+  }
 };

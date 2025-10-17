@@ -26,9 +26,14 @@
         "createDir": true,
         "removeDir": false,
         "removeFile": false,
-        "renameFile": false,
+        "renameFile": true,
         "exists": true,
-        "scope": ["$APPDATA/deskai/out/*"]
+        "scope": ["$APPDATA/deskai/out/*", "$APPDATA/deskai/documents/*"]
+      },
+      "dialog": {
+        "all": false,
+        "open": true,
+        "save": true
       },
       "protocol": {
         "all": false,

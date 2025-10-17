@@ -45,7 +45,13 @@ export class RequestRouter {
       { keywords: ['write', 'save', 'create file'], tool: 'file_write' },
       { keywords: ['read', 'open', 'load file'], tool: 'file_read' },
       { keywords: ['calculate', 'compute', 'math', 'arithmetic'], tool: 'calculator' },
-      { keywords: ['analyze', 'count', 'words', 'characters'], tool: 'text_analysis' }
+      { keywords: ['analyze', 'count', 'words', 'characters'], tool: 'text_analysis' },
+      // Secretary tools
+      { keywords: ['manage files', 'organize', 'sort files', 'file manager'], tool: 'file_manager' },
+      { keywords: ['extract pdf', 'read pdf', 'summarize', 'extract text'], tool: 'document_processor' },
+      { keywords: ['create document', 'write document', 'template', 'format'], tool: 'writing' },
+      { keywords: ['ocr', 'extract from image', 'read image', 'scan'], tool: 'ocr' },
+      { keywords: ['handwriting', 'recognize handwriting', 'read handwriting'], tool: 'handwriting' }
     ];
 
     const suggestedTools: string[] = [];
