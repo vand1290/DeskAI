@@ -1,10 +1,11 @@
-node_modules/
-dist/
-out/
-*.log
+node_modules
+dist
 .DS_Store
-.vscode/
-.idea/
-# Ignore compiled JS files in src (should use dist)
-src/**/*.js
-src/**/*.js.map
+*.log
+coverage
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.env
