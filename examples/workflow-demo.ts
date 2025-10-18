@@ -1,5 +1,5 @@
 // Import from the compiled JavaScript files
-// @ts-ignore - Importing from dist
+// @ts-expect-error - Importing from dist
 const { initializeDeskAI } = await import('../dist/index.js');
 
 /**
