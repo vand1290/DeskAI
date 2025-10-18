@@ -9,3 +9,6 @@ examples/data/
 .env
 .vscode/
 .idea/
+# Ignore compiled JS files in src (should use dist)
+src/**/*.js
+src/**/*.js.map
