@@ -16,12 +16,18 @@
     "example:basic": "npm run build:backend && npm run build:examples && node dist-examples/basic-usage.js",
     "example:router": "npm run build:backend && npm run build:examples && node dist-examples/router-api.js"
   },
-  "keywords": ["helpdesk", "ai", "offline", "memory"],
+  "keywords": [
+    "helpdesk",
+    "ai",
+    "offline",
+    "memory"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
