@@ -22,7 +22,31 @@ DeskAI is an offline meta-agent that routes user requests to local models and to
 - **Context awareness** - Reference previous conversations in new queries
 - **Session continuation** - Pick up where you left off
 
-## Getting Started (Development)
+### 🎓 Adaptive Learning Mode
+- **Pattern recognition** - Learns from your usage patterns and behaviors
+- **Smart suggestions** - Provides personalized tool and workflow recommendations
+- **Privacy-first** - All learning happens locally, no cloud processing
+- **User control** - Enable/disable learning and review or reset learned data
+- **Workflow detection** - Identifies common action sequences
+- **Topic tracking** - Understands your frequent discussion topics
+
+### 📊 Local Analytics
+- **Usage statistics** - Track conversation and message counts
+- **Topic analysis** - Discover frequent discussion topics
+- **Trend detection** - Understand your interaction patterns over time
+- **Privacy-focused** - All analytics computed locally, never sent anywhere
+
+### 🔒 Security & Privacy
+- **100% offline operation** - No network calls, no cloud storage
+- **Local-only storage** - Data stored in `out/conversations.json` and `out/learning.json`
+- **User control** - Export, delete, or manage your data anytime
+- **Transparent** - Open source and auditable
+
+### 💬 Intelligent Chat Interface
+- **Real-time responses** - Interactive conversation experience
+- **Multi-conversation support** - Manage multiple discussion threads
+- **Tag system** - Organize conversations by topic
+- **Search functionality** - Find past messages quickly
 
 ### Prerequisites
 1. Node.js 18+ installed
@@ -56,6 +80,7 @@ npm run ui:dev
 DeskAI/
 ├── src/                    # Backend TypeScript code
 │   ├── memory.ts          # Core memory manager
+│   ├── learning.ts        # Learning mode manager
 │   ├── agent.ts           # AI agent logic
 │   ├── router.ts          # Request routing
 │   ├── taskChain.ts       # Task chaining & workflow engine
@@ -63,8 +88,8 @@ DeskAI/
 ├── ui/                    # Frontend React code
 │   ├── components/        # React components
 │   │   ├── ConversationHistory.tsx
-│   │   ├── WorkflowList.tsx       # Workflow management
-│   │   └── WorkflowBuilder.tsx    # Visual workflow editor
+│   │   ├── LearningSettings.tsx
+│   │   └── AdaptiveSuggestions.tsx
 │   ├── App.tsx            # Main app component
 │   ├── Dashboard.tsx      # Chat dashboard
 │   ├── Workflows.tsx      # Workflow views
@@ -72,7 +97,7 @@ DeskAI/
 │   └── index.html         # HTML template
 ├── out/                   # Local data storage
 │   ├── conversations.json # Conversation database
-│   └── task-chains.json   # Saved workflows
+│   └── learning.json      # Learning data (patterns, preferences)
 ├── dist/                  # Compiled backend code
 └── dist-ui/               # Compiled frontend code
 ```
@@ -126,11 +151,21 @@ The system uses a deterministic keyword-based router that directs queries to spe
 - **Code Agent**: Specialized for programming and debugging tasks
 - **Data Agent**: Focused on data analysis and visualization
 
-### Tools System
-All tools are allowlisted and deterministic:
-- **file_read**: Read files from the `out` directory
-- **file_write**: Write files to the `out` directory
-- **file_list**: List files in the `out` directory
+### Using Learning Mode
+
+1. Navigate to the "Learning" tab in the navigation
+2. Enable or disable learning mode with the toggle
+3. View learning statistics showing tracked actions, tools, workflows, and topics
+4. Click "View Detailed Data" to see:
+   - Tool usage patterns with frequency counts
+   - Common workflow sequences you follow
+   - Frequent topics from your conversations
+5. See adaptive suggestions in the Dashboard based on your patterns
+6. Reset learning data anytime from the Learning Settings page
+
+**Privacy Note**: Learning mode operates entirely locally. All pattern analysis and suggestions are generated on your device. No data is sent to any external service.
+
+## Memory System Architecture
 
 **Security Note**: Shell and filesystem access are restricted to the `out` directory by default.
 
@@ -181,6 +216,20 @@ Workflows are stored as JSON in `out/task-chains.json`:
 }
 ```
 
+Learning data is stored in `out/learning.json`:
+
+```json
+{
+  "enabled": true,
+  "actions": [...],
+  "toolUsage": {...},
+  "workflows": [...],
+  "frequentTopics": {...},
+  "preferences": {...},
+  "lastAnalyzed": 1234567890
+}
+```
+
 ### Key Components
 
 1. **MemoryManager** (`src/memory.ts`)
@@ -188,30 +237,36 @@ Workflows are stored as JSON in `out/task-chains.json`:
    - Provides CRUD operations for conversations
    - Implements search and analytics
 
-2. **Agent** (`src/agent.ts`)
-   - Processes user messages
-   - Integrates with memory system
-   - Maintains conversation context
+2. **LearningManager** (`src/learning.ts`)
+   - Tracks user interactions and behavior patterns
+   - Detects workflow sequences
+   - Generates adaptive suggestions
+   - Manages learning preferences
 
-3. **TaskChainManager** (`src/taskChain.ts`)
-   - Manages workflow creation and execution
-   - Provides tool registry for chain steps
-   - Handles data flow between steps
+3. **Agent** (`src/agent.ts`)
+   - Processes user messages
+   - Integrates with memory and learning systems
+   - Maintains conversation context
 
 4. **Router** (`src/router.ts`)
    - Routes API requests to handlers
    - Coordinates between components
    - Provides unified interface
 
-5. **WorkflowBuilder** (`ui/components/WorkflowBuilder.tsx`)
-   - Visual workflow creation and editing
-   - Step management and reordering
-   - Workflow execution interface
-
-6. **ConversationHistory** (`ui/components/ConversationHistory.tsx`)
+5. **ConversationHistory** (`ui/components/ConversationHistory.tsx`)
    - Visual interface for browsing history
    - Search and filter functionality
    - Conversation detail view
+
+6. **LearningSettings** (`ui/components/LearningSettings.tsx`)
+   - Learning mode controls
+   - Data review interface
+   - Reset functionality
+
+7. **AdaptiveSuggestions** (`ui/components/AdaptiveSuggestions.tsx`)
+   - Displays personalized recommendations
+   - Shows confidence scores
+   - Context-aware suggestions
 
 ## Privacy & Security
 
@@ -243,81 +298,53 @@ Remove conversations:
 
 ### Backing Up
 
-Your data is stored in:
-- `out/conversations.json` - Conversation history
-- `out/task-chains.json` - Saved workflows
+Your conversations are stored in `out/conversations.json` and learning data in `out/learning.json`. Include these files in your backup strategy if you want to preserve your history and learned patterns.
 
-Include these files in your backup strategy if you want to preserve your history and workflows.
+## Learning Mode Details
 
-## Workflow Tool System
+### How It Works
 
-### Built-in Tools
+DeskAI's learning mode analyzes your usage patterns entirely on your device:
 
-DeskAI comes with several built-in tools for task chaining:
+1. **Action Tracking**: Records your interactions (messages, searches, analytics views)
+2. **Pattern Detection**: Identifies frequently used tools and common workflows
+3. **Topic Analysis**: Tracks conversation topics from tags
+4. **Suggestion Generation**: Creates personalized recommendations based on patterns
 
-1. **Document Scanner** (`scan`)
-   - Scans documents or images
-   - Placeholder for hardware/software integration
+### What Gets Tracked
 
-2. **OCR Text Extraction** (`ocr`)
-   - Extracts text from images using OCR
-   - Placeholder for OCR library integration
+- Tool usage (chat, search, analytics, filters)
+- Action sequences (workflow patterns)
+- Conversation topics (from tags)
+- Usage frequency and timing
 
-3. **Text Summarizer** (`summarize`)
-   - Summarizes text content
-   - Placeholder for AI/NLP integration
+### What Doesn't Get Tracked
 
-4. **File Saver** (`save`)
-   - Saves content to files
-   - Supports configuration for filenames
+- Message content (only metadata)
+- Personal information
+- Any data outside the application
+- Network activity (none exists)
 
-### Creating Custom Tools
+### Privacy Guarantees
 
-You can register custom tools programmatically:
+- ✅ **Local only** - All processing happens on your device
+- ✅ **No cloud sync** - Data never leaves your computer
+- ✅ **User controlled** - Enable/disable anytime
+- ✅ **Transparent** - Review all learned data
+- ✅ **Deletable** - Reset learning data completely
 
-```typescript
-import { TaskChainManager, ChainTool } from './src/taskChain';
+### Suggestions
 
-const customTool: ChainTool = {
-  type: 'my-custom-tool',
-  name: 'My Custom Tool',
-  description: 'Does something custom',
-  execute: async (input: unknown, config?: Record<string, unknown>) => {
-    // Your custom logic here
-    return { result: 'processed', data: input };
-  }
-};
+The learning mode provides several types of suggestions:
 
-const manager = new TaskChainManager('./out');
-await manager.initialize();
-manager.registerTool(customTool);
-```
+- **Tool Suggestions**: Frequently used features
+- **Workflow Suggestions**: Common action sequences
+- **Topic Suggestions**: Frequent discussion areas
 
-### Using Workflows Programmatically
-
-```typescript
-import { initializeDeskAI } from './src/index';
-
-const { taskChainManager } = await initializeDeskAI();
-
-// Create a workflow
-const chain = await taskChainManager.createChain(
-  'Document Processing',
-  'Scan, OCR, and save documents',
-  ['document', 'ocr']
-);
-
-// Add steps
-await taskChainManager.addStep(chain.id, 'scan', 'Scan Document');
-await taskChainManager.addStep(chain.id, 'ocr', 'Extract Text');
-await taskChainManager.addStep(chain.id, 'save', 'Save Result', {
-  filename: 'output.pdf'
-});
-
-// Execute the workflow
-const result = await taskChainManager.executeChain(chain.id, inputData);
-console.log(result.success ? 'Success!' : 'Failed:', result.error);
-```
+Each suggestion includes:
+- Confidence score (High/Medium/Low)
+- Usage reasoning
+- Contextual information
 
 ## Future Enhancements
 

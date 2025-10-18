@@ -1,4 +1,5 @@
 import { MemoryManager, Message } from './memory.js';
+import { LearningManager } from './learning.js';
 
 export interface AgentConfig {
   memoryEnabled: boolean;
@@ -16,12 +17,14 @@ export interface AgentResponse {
  */
 export class Agent {
   private memory: MemoryManager;
+  private learning?: LearningManager;
   private currentConversationId: string | null = null;
   private config: AgentConfig;
 
-  constructor(memory: MemoryManager, config: AgentConfig = { memoryEnabled: true }) {
+  constructor(memory: MemoryManager, config: AgentConfig = { memoryEnabled: true }, learning?: LearningManager) {
     this.memory = memory;
     this.config = config;
+    this.learning = learning;
   }
 
   /**
@@ -31,6 +34,15 @@ export class Agent {
     const conversationTitle = title || `Conversation ${new Date().toLocaleString()}`;
     const conversation = await this.memory.createConversation(conversationTitle, tags);
     this.currentConversationId = conversation.id;
+    
+    // Track action in learning manager
+    if (this.learning) {
+      await this.learning.trackAction('conversation_start', { tags });
+      if (tags && tags.length > 0) {
+        await this.learning.updateTopics(tags);
+      }
+    }
+    
     return conversation.id;
   }
 
@@ -43,6 +55,15 @@ export class Agent {
       return false;
     }
     this.currentConversationId = conversationId;
+    
+    // Track action in learning manager
+    if (this.learning) {
+      await this.learning.trackAction('conversation_continue', { conversationId });
+      if (conversation.tags && conversation.tags.length > 0) {
+        await this.learning.updateTopics(conversation.tags);
+      }
+    }
+    
     return true;
   }
 
@@ -58,6 +79,11 @@ export class Agent {
     // Log the user message if memory is enabled
     if (this.config.memoryEnabled && this.currentConversationId) {
       await this.memory.addMessage(this.currentConversationId, 'user', userMessage);
+    }
+
+    // Track message action in learning manager
+    if (this.learning) {
+      await this.learning.trackAction('message', { messageLength: userMessage.length });
     }
 
     // Generate response (this is a placeholder - in a real implementation,
@@ -81,6 +107,11 @@ export class Agent {
 
     // Check for more specific patterns first before greetings
     if (lowerMessage.includes('history') || lowerMessage.includes('past conversations')) {
+      // Track search action
+      if (this.learning) {
+        await this.learning.trackAction('search', { query: 'history' });
+      }
+      
       const summaries = await this.memory.listConversations();
       const recentConvs = summaries.slice(0, 5).map(s => 
         `- ${s.title} (${s.messageCount} messages, ${new Date(s.updatedAt).toLocaleDateString()})`
@@ -93,6 +124,11 @@ export class Agent {
     }
 
     if (lowerMessage.includes('analytics') || lowerMessage.includes('stats')) {
+      // Track analytics view action
+      if (this.learning) {
+        await this.learning.trackAction('view_analytics');
+      }
+      
       const analytics = await this.memory.getAnalytics();
       const topicsStr = analytics.frequentTopics
         .map(t => `- ${t.topic} (${t.count} times)`)
@@ -168,6 +204,11 @@ export class Agent {
    * Search for relevant context from past conversations
    */
   async searchContext(query: string, limit: number = 5): Promise<Message[]> {
+    // Track search action
+    if (this.learning) {
+      await this.learning.trackAction('search', { query });
+    }
+    
     const results = await this.memory.searchConversations(query);
     const messages: Message[] = [];
 
