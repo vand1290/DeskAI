@@ -1,6 +1,6 @@
 import { MemoryManager } from './memory.js';
 import { Agent } from './agent.js';
-import { LearningManager } from './learning.js';
+import { Scanner } from './scanner.js';
 
 export interface RouterRequest {
   action: string;
@@ -20,12 +20,12 @@ export interface RouterResponse {
 export class Router {
   private memory: MemoryManager;
   private agent: Agent;
-  private learning: LearningManager;
+  private scanner: Scanner;
 
-  constructor(memory: MemoryManager, agent: Agent, learning: LearningManager) {
+  constructor(memory: MemoryManager, agent: Agent, scanner: Scanner) {
     this.memory = memory;
     this.agent = agent;
-    this.learning = learning;
+    this.scanner = scanner;
   }
 
   /**
@@ -64,24 +64,26 @@ export class Router {
         case 'filterByTags':
           return await this.handleFilterByTags(request.params);
         
-        // Learning mode endpoints
-        case 'getLearningEnabled':
-          return await this.handleGetLearningEnabled();
+        case 'processDocument':
+          return await this.handleProcessDocument(request.params);
         
-        case 'setLearningEnabled':
-          return await this.handleSetLearningEnabled(request.params);
+        case 'listScannedDocuments':
+          return await this.handleListScannedDocuments();
         
-        case 'getSuggestions':
-          return await this.handleGetSuggestions(request.params);
+        case 'getScannedDocument':
+          return await this.handleGetScannedDocument(request.params);
         
-        case 'getLearningStatistics':
-          return await this.handleGetLearningStatistics();
+        case 'searchScannedDocuments':
+          return await this.handleSearchScannedDocuments(request.params);
         
-        case 'getLearningData':
-          return await this.handleGetLearningData();
+        case 'deleteScannedDocument':
+          return await this.handleDeleteScannedDocument(request.params);
         
-        case 'resetLearning':
-          return await this.handleResetLearning();
+        case 'linkDocumentToConversation':
+          return await this.handleLinkDocumentToConversation(request.params);
+        
+        case 'suggestRelatedDocuments':
+          return await this.handleSuggestRelatedDocuments(request.params);
         
         default:
           return {
@@ -387,6 +389,117 @@ export async function handleRequest(messages: Message[]): Promise<{
     return {
       success: true,
       data: { message: 'Learning data has been reset' }
+    };
+  }
+
+  private async handleProcessDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.imageData || !params?.filename) {
+      return { success: false, error: 'Image data and filename are required' };
+    }
+
+    const document = await this.scanner.processDocument(
+      params.imageData as string,
+      params.filename as string,
+      params.fileType as string | undefined,
+      params.fileSize as number | undefined
+    );
+
+    // Save to memory
+    await this.memory.saveScannedDocument(document);
+
+    return {
+      success: true,
+      data: { document }
+    };
+  }
+
+  private async handleListScannedDocuments(): Promise<RouterResponse> {
+    const documents = await this.memory.listScannedDocuments();
+    return {
+      success: true,
+      data: { documents }
+    };
+  }
+
+  private async handleGetScannedDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.documentId || typeof params.documentId !== 'string') {
+      return { success: false, error: 'Document ID is required' };
+    }
+
+    const document = await this.memory.getScannedDocument(params.documentId as string);
+    if (!document) {
+      return { success: false, error: 'Document not found' };
+    }
+
+    return {
+      success: true,
+      data: { document }
+    };
+  }
+
+  private async handleSearchScannedDocuments(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.query || typeof params.query !== 'string') {
+      return { success: false, error: 'Query is required' };
+    }
+
+    const allDocuments = await this.memory.listScannedDocuments();
+    const results = this.scanner.searchDocuments(
+      allDocuments,
+      params.query as string,
+      params.filterType as 'name' | 'date' | 'number' | 'keyword' | undefined
+    );
+
+    return {
+      success: true,
+      data: { results }
+    };
+  }
+
+  private async handleDeleteScannedDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.documentId || typeof params.documentId !== 'string') {
+      return { success: false, error: 'Document ID is required' };
+    }
+
+    const deleted = await this.memory.deleteScannedDocument(params.documentId as string);
+
+    return {
+      success: true,
+      data: { deleted }
+    };
+  }
+
+  private async handleLinkDocumentToConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.documentId || !params?.conversationId) {
+      return { success: false, error: 'Document ID and Conversation ID are required' };
+    }
+
+    const linked = await this.memory.linkScannedDocumentToConversation(
+      params.documentId as string,
+      params.conversationId as string
+    );
+
+    return {
+      success: true,
+      data: { linked }
+    };
+  }
+
+  private async handleSuggestRelatedDocuments(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.documentId || typeof params.documentId !== 'string') {
+      return { success: false, error: 'Document ID is required' };
+    }
+
+    const limit = (params.limit as number) || 5;
+    const allDocuments = await this.memory.listScannedDocuments();
+    const relatedDocuments = this.scanner.suggestRelatedDocuments(
+      allDocuments,
+      params.documentId as string,
+      limit
+    );
+
+    return {
+      success: true,
+      data: { relatedDocuments }
     };
   }
 }

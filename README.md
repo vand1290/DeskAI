@@ -22,13 +22,13 @@ DeskAI is an offline meta-agent that routes user requests to local models and to
 - **Context awareness** - Reference previous conversations in new queries
 - **Session continuation** - Pick up where you left off
 
-### 🎓 Adaptive Learning Mode
-- **Pattern recognition** - Learns from your usage patterns and behaviors
-- **Smart suggestions** - Provides personalized tool and workflow recommendations
-- **Privacy-first** - All learning happens locally, no cloud processing
-- **User control** - Enable/disable learning and review or reset learned data
-- **Workflow detection** - Identifies common action sequences
-- **Topic tracking** - Understands your frequent discussion topics
+### 📄 Scan-to-Search
+- **OCR text extraction** - Upload scanned documents or images to extract text
+- **Smart data extraction** - Automatically extract names, dates, numbers, and keywords
+- **Advanced search** - Search across all scanned documents by any extracted data
+- **Document linking** - Link scanned documents to related conversations
+- **Offline processing** - All OCR and text extraction happens locally
+- **Related documents** - Automatically suggest related documents based on content similarity
 
 ### 📊 Local Analytics
 - **Usage statistics** - Track conversation and message counts
@@ -83,13 +83,13 @@ DeskAI/
 │   ├── learning.ts        # Learning mode manager
 │   ├── agent.ts           # AI agent logic
 │   ├── router.ts          # Request routing
-│   ├── taskChain.ts       # Task chaining & workflow engine
+│   ├── scanner.ts         # OCR and scan processing
 │   └── index.ts           # Main entry point
 ├── ui/                    # Frontend React code
 │   ├── components/        # React components
 │   │   ├── ConversationHistory.tsx
-│   │   ├── LearningSettings.tsx
-│   │   └── AdaptiveSuggestions.tsx
+│   │   ├── ScanUpload.tsx
+│   │   └── ScanSearch.tsx
 │   ├── App.tsx            # Main app component
 │   ├── Dashboard.tsx      # Chat dashboard
 │   ├── Workflows.tsx      # Workflow views
@@ -97,7 +97,7 @@ DeskAI/
 │   └── index.html         # HTML template
 ├── out/                   # Local data storage
 │   ├── conversations.json # Conversation database
-│   └── learning.json      # Learning data (patterns, preferences)
+│   └── scanned-documents.json # Scanned documents database
 ├── dist/                  # Compiled backend code
 └── dist-ui/               # Compiled frontend code
 ```
@@ -142,6 +142,16 @@ To connect your own local models:
 - **Delete**: Click the trash icon to remove a workflow
 - **Filter**: Use tags to find specific workflows
 - **Execute**: Run workflows directly from the list view
+
+### Using Scan-to-Search
+
+1. Click "Scan Document" in the navigation
+2. Upload an image or scanned document (PNG, JPG, etc.)
+3. Wait for OCR processing to complete
+4. View extracted text and structured data (names, dates, numbers)
+5. Click "Search Scans" to find information across all scanned documents
+6. Use filters to search by specific data types (names, dates, keywords)
+7. View full document details by clicking "View" on any search result
 
 ### Viewing Analytics
 
@@ -234,14 +244,14 @@ Learning data is stored in `out/learning.json`:
 
 1. **MemoryManager** (`src/memory.ts`)
    - Handles all data persistence
-   - Provides CRUD operations for conversations
+   - Provides CRUD operations for conversations and scanned documents
    - Implements search and analytics
 
-2. **LearningManager** (`src/learning.ts`)
-   - Tracks user interactions and behavior patterns
-   - Detects workflow sequences
-   - Generates adaptive suggestions
-   - Manages learning preferences
+2. **Scanner** (`src/scanner.ts`)
+   - OCR processing using Tesseract.js
+   - Extracts structured data (names, dates, numbers, keywords)
+   - Provides search and document similarity algorithms
+   - 100% offline operation
 
 3. **Agent** (`src/agent.ts`)
    - Processes user messages
@@ -258,15 +268,15 @@ Learning data is stored in `out/learning.json`:
    - Search and filter functionality
    - Conversation detail view
 
-6. **LearningSettings** (`ui/components/LearningSettings.tsx`)
-   - Learning mode controls
-   - Data review interface
-   - Reset functionality
+6. **ScanUpload** (`ui/components/ScanUpload.tsx`)
+   - File upload interface
+   - OCR processing indicators
+   - Extracted data preview
 
-7. **AdaptiveSuggestions** (`ui/components/AdaptiveSuggestions.tsx`)
-   - Displays personalized recommendations
-   - Shows confidence scores
-   - Context-aware suggestions
+7. **ScanSearch** (`ui/components/ScanSearch.tsx`)
+   - Search interface for scanned documents
+   - Filter by data type
+   - Document detail modal
 
 ## Privacy & Security
 
@@ -287,86 +297,35 @@ For detailed security information, see [SECURITY.md](SECURITY.md).
 Export your conversation history:
 1. Go to History view
 2. Click "Export" to download as JSON
-3. Or manually copy `out/conversations.json`
+3. Or manually copy `out/conversations.json` and `out/scanned-documents.json`
 
 ### Deleting Data
 
-Remove conversations:
-1. Individual: Click × on any conversation
-2. All: Delete the `out/conversations.json` file
+Remove conversations or scanned documents:
+1. Individual: Click × on any item
+2. All: Delete the `out/conversations.json` or `out/scanned-documents.json` files
 3. Reset: Use the clear function (if implemented)
 
 ### Backing Up
 
-Your conversations are stored in `out/conversations.json` and learning data in `out/learning.json`. Include these files in your backup strategy if you want to preserve your history and learned patterns.
+Your data is stored in these files:
+- `out/conversations.json` - Conversation history
+- `out/scanned-documents.json` - Scanned documents and extracted data
 
-## Learning Mode Details
-
-### How It Works
-
-DeskAI's learning mode analyzes your usage patterns entirely on your device:
-
-1. **Action Tracking**: Records your interactions (messages, searches, analytics views)
-2. **Pattern Detection**: Identifies frequently used tools and common workflows
-3. **Topic Analysis**: Tracks conversation topics from tags
-4. **Suggestion Generation**: Creates personalized recommendations based on patterns
-
-### What Gets Tracked
-
-- Tool usage (chat, search, analytics, filters)
-- Action sequences (workflow patterns)
-- Conversation topics (from tags)
-- Usage frequency and timing
-
-### What Doesn't Get Tracked
-
-- Message content (only metadata)
-- Personal information
-- Any data outside the application
-- Network activity (none exists)
-
-### Privacy Guarantees
-
-- ✅ **Local only** - All processing happens on your device
-- ✅ **No cloud sync** - Data never leaves your computer
-- ✅ **User controlled** - Enable/disable anytime
-- ✅ **Transparent** - Review all learned data
-- ✅ **Deletable** - Reset learning data completely
-
-### Suggestions
-
-The learning mode provides several types of suggestions:
-
-- **Tool Suggestions**: Frequently used features
-- **Workflow Suggestions**: Common action sequences
-- **Topic Suggestions**: Frequent discussion areas
-
-Each suggestion includes:
-- Confidence score (High/Medium/Low)
-- Usage reasoning
-- Contextual information
+Include these files in your backup strategy if you want to preserve your history.
 
 ## Future Enhancements
 
 Planned features:
 - [ ] Advanced semantic search with local embeddings
 - [ ] Conversation summarization
-- [ ] Multi-modal support (images, documents)
+- [x] Multi-modal support (images, documents)
 - [ ] Enhanced context extraction
 - [ ] Learning from file content
 - [ ] Richer analytics dashboards
 - [ ] Optional encryption at rest
 - [ ] Import/export in multiple formats
-- [x] Task chaining and workflow automation
-- [ ] Real OCR and document processing integration
-- [ ] AI-powered summarization
-- [ ] Hardware scanner integration
-
-# Tests cover:
-# - Router logic and agent selection
-# - Tool security and functionality
-# - Deterministic behavior
-```
+- [x] OCR and document scanning capabilities
 
 ## Security Notes
 - All operations are performed locally on your device

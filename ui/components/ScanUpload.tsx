@@ -1,485 +1,390 @@
 import React, { useState, useRef } from 'react';
+import { ScannedDocument } from '../../src/memory';
 
 interface ScanUploadProps {
-  onScanProcessed?: (scanId: string) => void;
+  onDocumentProcessed?: (document: ScannedDocument) => void;
 }
 
-interface SuggestedConversation {
-  id: string;
-  title: string;
-  messageCount: number;
-}
-
-interface ScanResult {
-  scan: {
-    id: string;
-    filename: string;
-    extractedText: string;
-    metadata: {
-      names: string[];
-      dates: string[];
-      totals: string[];
-      keywords: string[];
-    };
-  };
-  suggestedConversations: SuggestedConversation[];
-}
-
-export const ScanUpload: React.FC<ScanUploadProps> = ({ onScanProcessed }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<ScanResult | null>(null);
+export const ScanUpload: React.FC<ScanUploadProps> = ({ onDocumentProcessed }) => {
+  const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
+  const [processedDocument, setProcessedDocument] = useState<ScannedDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (file: File) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Please select an image file (JPG, PNG, etc.)');
+      setError('Please upload an image file (PNG, JPG, etc.)');
       return;
     }
 
-    setIsProcessing(true);
+    setUploading(true);
     setError(null);
-    setResult(null);
+    setProcessedDocument(null);
 
     try {
-      // Create FormData to send the file
-      const formData = new FormData();
-      formData.append('file', file);
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageData = e.target?.result as string;
+        
+        setUploading(false);
+        setProcessing(true);
 
-      const response = await fetch('/api/scan/upload', {
-        method: 'POST',
-        body: formData
-      });
+        try {
+          // Send to backend for OCR processing
+          const response = await fetch('/api/scan/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageData,
+              filename: file.name,
+              fileType: file.type,
+              fileSize: file.size
+            })
+          });
 
-      if (!response.ok) {
-        throw new Error('Failed to upload and process scan');
-      }
+          if (response.ok) {
+            const data = await response.json();
+            setProcessedDocument(data.document);
+            onDocumentProcessed?.(data.document);
+          } else {
+            const errorData = await response.json();
+            setError(errorData.error || 'Failed to process document');
+          }
+        } catch (err) {
+          setError('Failed to process document. Please try again.');
+          console.error('Processing error:', err);
+        } finally {
+          setProcessing(false);
+        }
+      };
 
-      const data = await response.json();
-      setResult(data);
-      
-      if (onScanProcessed && data.scan?.id) {
-        onScanProcessed(data.scan.id);
-      }
+      reader.onerror = () => {
+        setError('Failed to read file');
+        setUploading(false);
+      };
+
+      reader.readAsDataURL(file);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process scan');
-      console.error('Scan processing error:', err);
-    } finally {
-      setIsProcessing(false);
+      setError('Failed to upload file');
+      setUploading(false);
+      console.error('Upload error:', err);
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
-    }
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(true);
-  };
-
-  const handleDragLeave = () => {
-    setDragActive(false);
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
-    }
-  };
-
-  const handleLinkToConversation = async (conversationId: string) => {
-    if (!result?.scan?.id) return;
-
-    try {
-      const response = await fetch('/api/scan/link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scanId: result.scan.id,
-          conversationId
-        })
-      });
-
-      if (response.ok) {
-        alert('Scan linked to conversation successfully!');
-      }
-    } catch (err) {
-      console.error('Failed to link scan:', err);
+  const resetUpload = () => {
+    setProcessedDocument(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   return (
     <div className="scan-upload">
+      <div className="upload-header">
+        <h2>Scan Document</h2>
+        <p>Upload an image or scanned document to extract text and search data</p>
+      </div>
+
       <div className="upload-area">
-        <div
-          className={`dropzone ${dragActive ? 'active' : ''} ${isProcessing ? 'processing' : ''}`}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {isProcessing ? (
-            <div className="processing-indicator">
-              <div className="spinner"></div>
-              <p>Processing scan with OCR...</p>
-              <p className="hint">This may take a few moments</p>
-            </div>
-          ) : (
-            <>
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              <p className="upload-text">Drop an image here or click to browse</p>
-              <p className="upload-hint">Supports JPG, PNG, and other image formats</p>
-            </>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileInputChange}
-            style={{ display: 'none' }}
-          />
-        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+        />
+
+        {!processedDocument && (
+          <button
+            className="upload-button"
+            onClick={handleUploadClick}
+            disabled={uploading || processing}
+          >
+            {uploading && 'Reading file...'}
+            {processing && 'Processing with OCR...'}
+            {!uploading && !processing && 'Choose Image to Scan'}
+          </button>
+        )}
 
         {error && (
           <div className="error-message">
-            <strong>Error:</strong> {error}
+            <span className="error-icon">⚠️</span>
+            {error}
+          </div>
+        )}
+
+        {processedDocument && (
+          <div className="processed-result">
+            <div className="result-header">
+              <h3>✓ Document Processed</h3>
+              <button className="reset-button" onClick={resetUpload}>
+                Upload Another
+              </button>
+            </div>
+
+            <div className="result-info">
+              <div className="info-item">
+                <strong>Filename:</strong> {processedDocument.filename}
+              </div>
+              <div className="info-item">
+                <strong>Uploaded:</strong> {new Date(processedDocument.metadata.uploadedAt).toLocaleString()}
+              </div>
+              {processedDocument.metadata.ocrConfidence && (
+                <div className="info-item">
+                  <strong>OCR Confidence:</strong> {processedDocument.metadata.ocrConfidence.toFixed(1)}%
+                </div>
+              )}
+            </div>
+
+            <div className="extracted-text">
+              <h4>Extracted Text</h4>
+              <div className="text-preview">
+                {processedDocument.content || 'No text extracted'}
+              </div>
+            </div>
+
+            {(processedDocument.extractedData.names?.length ||
+              processedDocument.extractedData.dates?.length ||
+              processedDocument.extractedData.numbers?.length) && (
+              <div className="extracted-data">
+                <h4>Extracted Data</h4>
+                
+                {processedDocument.extractedData.names && processedDocument.extractedData.names.length > 0 && (
+                  <div className="data-section">
+                    <strong>Names:</strong>
+                    <div className="data-tags">
+                      {processedDocument.extractedData.names.map((name, idx) => (
+                        <span key={idx} className="data-tag name-tag">{name}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {processedDocument.extractedData.dates && processedDocument.extractedData.dates.length > 0 && (
+                  <div className="data-section">
+                    <strong>Dates:</strong>
+                    <div className="data-tags">
+                      {processedDocument.extractedData.dates.map((date, idx) => (
+                        <span key={idx} className="data-tag date-tag">{date}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {processedDocument.extractedData.numbers && processedDocument.extractedData.numbers.length > 0 && (
+                  <div className="data-section">
+                    <strong>Numbers:</strong>
+                    <div className="data-tags">
+                      {processedDocument.extractedData.numbers.slice(0, 10).map((num, idx) => (
+                        <span key={idx} className="data-tag number-tag">{num}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {result && (
-        <div className="scan-result">
-          <h3>Scan Processed: {result.scan.filename}</h3>
-          
-          <div className="result-section">
-            <h4>Extracted Information</h4>
-            
-            {result.scan.metadata.names.length > 0 && (
-              <div className="metadata-group">
-                <strong>Names:</strong>
-                <div className="metadata-tags">
-                  {result.scan.metadata.names.slice(0, 5).map((name, idx) => (
-                    <span key={idx} className="tag name-tag">{name}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {result.scan.metadata.dates.length > 0 && (
-              <div className="metadata-group">
-                <strong>Dates:</strong>
-                <div className="metadata-tags">
-                  {result.scan.metadata.dates.slice(0, 5).map((date, idx) => (
-                    <span key={idx} className="tag date-tag">{date}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {result.scan.metadata.totals.length > 0 && (
-              <div className="metadata-group">
-                <strong>Amounts:</strong>
-                <div className="metadata-tags">
-                  {result.scan.metadata.totals.slice(0, 5).map((total, idx) => (
-                    <span key={idx} className="tag total-tag">{total}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {result.scan.metadata.keywords.length > 0 && (
-              <div className="metadata-group">
-                <strong>Keywords:</strong>
-                <div className="metadata-tags">
-                  {result.scan.metadata.keywords.slice(0, 10).map((keyword, idx) => (
-                    <span key={idx} className="tag keyword-tag">{keyword}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {result.scan.extractedText && (
-            <div className="result-section">
-              <h4>Full Extracted Text</h4>
-              <div className="extracted-text">
-                {result.scan.extractedText}
-              </div>
-            </div>
-          )}
-
-          {result.suggestedConversations && result.suggestedConversations.length > 0 && (
-            <div className="result-section">
-              <h4>Related Conversations</h4>
-              <p className="section-hint">Based on content similarity</p>
-              <div className="suggestions-list">
-                {result.suggestedConversations.map((conv) => (
-                  <div key={conv.id} className="suggestion-item">
-                    <div className="suggestion-info">
-                      <strong>{conv.title}</strong>
-                      <span className="message-count">{conv.messageCount} messages</span>
-                    </div>
-                    <button
-                      className="link-button"
-                      onClick={() => handleLinkToConversation(conv.id)}
-                    >
-                      Link
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       <style>{`
         .scan-upload {
           padding: 20px;
-          max-width: 900px;
+          max-width: 1200px;
           margin: 0 auto;
         }
 
-        .upload-area {
+        .upload-header {
           margin-bottom: 30px;
         }
 
-        .dropzone {
-          border: 2px dashed #cbd5e0;
-          border-radius: 8px;
-          padding: 60px 20px;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.2s;
+        .upload-header h2 {
+          margin: 0 0 10px 0;
+          color: #333;
+        }
+
+        .upload-header p {
+          margin: 0;
+          color: #666;
+        }
+
+        .upload-area {
           background: white;
-        }
-
-        .dropzone:hover {
-          border-color: #3498db;
-          background: #f7fafc;
-        }
-
-        .dropzone.active {
-          border-color: #3498db;
-          background: #ebf8ff;
-        }
-
-        .dropzone.processing {
-          cursor: wait;
-          background: #f7fafc;
-        }
-
-        .dropzone svg {
-          color: #718096;
-          margin-bottom: 15px;
-        }
-
-        .upload-text {
-          font-size: 18px;
-          color: #2d3748;
-          margin-bottom: 8px;
-        }
-
-        .upload-hint {
-          font-size: 14px;
-          color: #718096;
-        }
-
-        .processing-indicator {
+          border: 2px dashed #ddd;
+          border-radius: 8px;
+          padding: 40px;
+          text-align: center;
+          min-height: 200px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 15px;
+          justify-content: center;
         }
 
-        .processing-indicator p {
-          margin: 0;
+        .upload-button {
+          padding: 15px 40px;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 6px;
           font-size: 16px;
-          color: #2d3748;
+          cursor: pointer;
+          transition: background 0.2s;
         }
 
-        .processing-indicator .hint {
-          font-size: 14px;
-          color: #718096;
+        .upload-button:hover:not(:disabled) {
+          background: #0056b3;
         }
 
-        .spinner {
-          width: 48px;
-          height: 48px;
-          border: 4px solid #e2e8f0;
-          border-top-color: #3498db;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        .upload-button:disabled {
+          background: #6c757d;
+          cursor: wait;
         }
 
         .error-message {
-          margin-top: 15px;
-          padding: 12px;
-          background: #fee;
-          border: 1px solid #fcc;
+          margin-top: 20px;
+          padding: 15px;
+          background: #f8d7da;
+          border: 1px solid #f5c6cb;
           border-radius: 4px;
-          color: #c33;
+          color: #721c24;
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
 
-        .scan-result {
-          background: white;
-          border-radius: 8px;
-          padding: 25px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .scan-result h3 {
-          margin: 0 0 20px 0;
-          color: #2d3748;
+        .error-icon {
           font-size: 20px;
         }
 
-        .result-section {
-          margin-bottom: 25px;
-          padding-bottom: 25px;
-          border-bottom: 1px solid #e2e8f0;
+        .processed-result {
+          width: 100%;
+          text-align: left;
         }
 
-        .result-section:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-          margin-bottom: 0;
+        .result-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid #e0e0e0;
         }
 
-        .result-section h4 {
-          margin: 0 0 12px 0;
-          color: #4a5568;
-          font-size: 16px;
+        .result-header h3 {
+          margin: 0;
+          color: #28a745;
         }
 
-        .section-hint {
+        .reset-button {
+          padding: 8px 16px;
+          background: #6c757d;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
           font-size: 14px;
-          color: #718096;
-          margin: -8px 0 12px 0;
         }
 
-        .metadata-group {
+        .reset-button:hover {
+          background: #5a6268;
+        }
+
+        .result-info {
+          background: #f8f9fa;
+          padding: 15px;
+          border-radius: 6px;
+          margin-bottom: 20px;
+        }
+
+        .info-item {
+          margin: 8px 0;
+        }
+
+        .info-item strong {
+          color: #495057;
+          margin-right: 8px;
+        }
+
+        .extracted-text {
+          margin-bottom: 20px;
+        }
+
+        .extracted-text h4 {
+          margin: 0 0 10px 0;
+          color: #333;
+        }
+
+        .text-preview {
+          background: #f8f9fa;
+          padding: 15px;
+          border-radius: 6px;
+          max-height: 300px;
+          overflow-y: auto;
+          white-space: pre-wrap;
+          font-family: monospace;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        .extracted-data {
+          border-top: 1px solid #e0e0e0;
+          padding-top: 20px;
+        }
+
+        .extracted-data h4 {
+          margin: 0 0 15px 0;
+          color: #333;
+        }
+
+        .data-section {
           margin-bottom: 15px;
         }
 
-        .metadata-group:last-child {
-          margin-bottom: 0;
-        }
-
-        .metadata-group strong {
+        .data-section strong {
           display: block;
           margin-bottom: 8px;
-          color: #4a5568;
-          font-size: 14px;
+          color: #495057;
         }
 
-        .metadata-tags {
+        .data-tags {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
         }
 
-        .tag {
-          padding: 4px 12px;
-          border-radius: 12px;
-          font-size: 13px;
+        .data-tag {
+          display: inline-block;
+          padding: 6px 12px;
+          border-radius: 4px;
+          font-size: 14px;
           font-weight: 500;
         }
 
         .name-tag {
-          background: #e6f7ff;
-          color: #0066cc;
+          background: #d1ecf1;
+          color: #0c5460;
         }
 
         .date-tag {
-          background: #fff4e6;
-          color: #d46b08;
+          background: #d4edda;
+          color: #155724;
         }
 
-        .total-tag {
-          background: #f0fdf4;
-          color: #16a34a;
-        }
-
-        .keyword-tag {
-          background: #f5f5f5;
-          color: #666;
-        }
-
-        .extracted-text {
-          background: #f7fafc;
-          padding: 15px;
-          border-radius: 4px;
-          max-height: 300px;
-          overflow-y: auto;
-          font-family: 'Courier New', monospace;
-          font-size: 13px;
-          line-height: 1.6;
-          color: #2d3748;
-          white-space: pre-wrap;
-        }
-
-        .suggestions-list {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .suggestion-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px;
-          background: #f7fafc;
-          border-radius: 6px;
-          border: 1px solid #e2e8f0;
-        }
-
-        .suggestion-info {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .suggestion-info strong {
-          color: #2d3748;
-          font-size: 14px;
-        }
-
-        .message-count {
-          font-size: 12px;
-          color: #718096;
-        }
-
-        .link-button {
-          padding: 6px 16px;
-          background: #3498db;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 500;
-          transition: background 0.2s;
-        }
-
-        .link-button:hover {
-          background: #2980b9;
+        .number-tag {
+          background: #fff3cd;
+          color: #856404;
         }
       `}</style>
     </div>

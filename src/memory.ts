@@ -34,6 +34,26 @@ export interface ScanDocument {
   linkedConversations?: string[]; // IDs of related conversations
 }
 
+export interface ScannedDocument {
+  id: string;
+  filename: string;
+  content: string;
+  extractedData: {
+    names?: string[];
+    dates?: string[];
+    numbers?: string[];
+    keywords?: string[];
+  };
+  metadata: {
+    uploadedAt: number;
+    fileSize?: number;
+    fileType?: string;
+    ocrConfidence?: number;
+  };
+  relatedConversationIds?: string[];
+  tags?: string[];
+}
+
 export interface ConversationSummary {
   id: string;
   title: string;
@@ -78,16 +98,16 @@ export interface Analytics {
  */
 export class MemoryManager {
   private conversationsPath: string;
-  private scansPath: string;
+  private scannedDocsPath: string;
   private conversations: Map<string, Conversation>;
-  private scans: Map<string, ScanDocument>;
+  private scannedDocuments: Map<string, ScannedDocument>;
   private initialized: boolean = false;
 
   constructor(dataDir: string = './out') {
     this.conversationsPath = path.join(dataDir, 'conversations.json');
-    this.scansPath = path.join(dataDir, 'scans.json');
+    this.scannedDocsPath = path.join(dataDir, 'scanned-documents.json');
     this.conversations = new Map();
-    this.scans = new Map();
+    this.scannedDocuments = new Map();
   }
 
   /**
@@ -113,13 +133,13 @@ export class MemoryManager {
         }
       }
 
-      // Load existing scans if the file exists
-      if (fs.existsSync(this.scansPath)) {
-        const data = fs.readFileSync(this.scansPath, 'utf-8');
-        const scansArray: ScanDocument[] = JSON.parse(data);
+      // Load existing scanned documents if the file exists
+      if (fs.existsSync(this.scannedDocsPath)) {
+        const data = fs.readFileSync(this.scannedDocsPath, 'utf-8');
+        const docsArray: ScannedDocument[] = JSON.parse(data);
         
-        for (const scan of scansArray) {
-          this.scans.set(scan.id, scan);
+        for (const doc of docsArray) {
+          this.scannedDocuments.set(doc.id, doc);
         }
       }
 
@@ -145,15 +165,15 @@ export class MemoryManager {
   }
 
   /**
-   * Save scans to disk
+   * Save scanned documents to disk
    */
-  private async saveScans(): Promise<void> {
+  private async saveScannedDocuments(): Promise<void> {
     try {
-      const scansArray = Array.from(this.scans.values());
-      const data = JSON.stringify(scansArray, null, 2);
-      fs.writeFileSync(this.scansPath, data, 'utf-8');
+      const docsArray = Array.from(this.scannedDocuments.values());
+      const data = JSON.stringify(docsArray, null, 2);
+      fs.writeFileSync(this.scannedDocsPath, data, 'utf-8');
     } catch (error) {
-      console.error('Failed to save scans:', error);
+      console.error('Failed to save scanned documents:', error);
       throw error;
     }
   }
@@ -346,236 +366,93 @@ export class MemoryManager {
   }
 
   /**
-   * Add a scan document
+   * Save a scanned document
    */
-  async addScan(scanDocument: ScanDocument): Promise<ScanDocument> {
-    this.scans.set(scanDocument.id, scanDocument);
-    await this.saveScans();
-    return scanDocument;
+  async saveScannedDocument(document: ScannedDocument): Promise<void> {
+    this.scannedDocuments.set(document.id, document);
+    await this.saveScannedDocuments();
   }
 
   /**
-   * Get a scan document by ID
+   * Get a scanned document by ID
    */
-  async getScan(scanId: string): Promise<ScanDocument | null> {
-    return this.scans.get(scanId) || null;
+  async getScannedDocument(documentId: string): Promise<ScannedDocument | null> {
+    return this.scannedDocuments.get(documentId) || null;
   }
 
   /**
-   * List all scan documents
+   * List all scanned documents
    */
-  async listScans(): Promise<ScanDocument[]> {
-    const scansArray = Array.from(this.scans.values());
-    return scansArray.sort((a, b) => b.uploadedAt - a.uploadedAt);
+  async listScannedDocuments(): Promise<ScannedDocument[]> {
+    return Array.from(this.scannedDocuments.values()).sort(
+      (a, b) => b.metadata.uploadedAt - a.metadata.uploadedAt
+    );
   }
 
   /**
-   * Search scans by query
+   * Search scanned documents
    */
-  async searchScans(query: string): Promise<ScanSearchResult[]> {
-    const results: ScanSearchResult[] = [];
+  async searchScannedDocuments(query: string): Promise<ScannedDocument[]> {
+    const results: ScannedDocument[] = [];
     const lowerQuery = query.toLowerCase();
 
-    for (const scan of this.scans.values()) {
-      const matches: ScanSearchResult['matches'] = [];
-      let score = 0;
-
-      // Search in metadata
-      for (const name of scan.metadata.names) {
-        if (name.toLowerCase().includes(lowerQuery)) {
-          matches.push({
-            type: 'name',
-            value: name,
-            context: this.getContext(scan.extractedText, name)
-          });
-          score += 2;
-        }
-      }
-
-      for (const date of scan.metadata.dates) {
-        if (date.toLowerCase().includes(lowerQuery)) {
-          matches.push({
-            type: 'date',
-            value: date,
-            context: this.getContext(scan.extractedText, date)
-          });
-          score += 1.5;
-        }
-      }
-
-      for (const total of scan.metadata.totals) {
-        if (total.toLowerCase().includes(lowerQuery)) {
-          matches.push({
-            type: 'total',
-            value: total,
-            context: this.getContext(scan.extractedText, total)
-          });
-          score += 1.5;
-        }
-      }
-
-      for (const keyword of scan.metadata.keywords) {
-        if (keyword.toLowerCase().includes(lowerQuery)) {
-          matches.push({
-            type: 'keyword',
-            value: keyword,
-            context: this.getContext(scan.extractedText, keyword)
-          });
-          score += 1;
-        }
-      }
-
-      // Search in full text
-      if (scan.extractedText.toLowerCase().includes(lowerQuery)) {
-        const context = this.getContext(scan.extractedText, query);
-        if (!matches.some(m => m.context === context)) {
-          matches.push({
-            type: 'text',
-            value: query,
-            context
-          });
-          score += 0.5;
-        }
-      }
-
-      if (matches.length > 0) {
-        results.push({
-          documentId: scan.id,
-          filename: scan.filename,
-          matches,
-          score
-        });
+    for (const doc of this.scannedDocuments.values()) {
+      if (
+        doc.content.toLowerCase().includes(lowerQuery) ||
+        doc.filename.toLowerCase().includes(lowerQuery) ||
+        doc.extractedData.names?.some(n => n.toLowerCase().includes(lowerQuery)) ||
+        doc.extractedData.dates?.some(d => d.toLowerCase().includes(lowerQuery)) ||
+        doc.extractedData.keywords?.some(k => k.toLowerCase().includes(lowerQuery))
+      ) {
+        results.push(doc);
       }
     }
 
-    return results.sort((a, b) => b.score - a.score);
+    return results;
   }
 
   /**
-   * Delete a scan document
+   * Delete a scanned document
    */
-  async deleteScan(scanId: string): Promise<boolean> {
-    const deleted = this.scans.delete(scanId);
+  async deleteScannedDocument(documentId: string): Promise<boolean> {
+    const deleted = this.scannedDocuments.delete(documentId);
     if (deleted) {
-      await this.saveScans();
+      await this.saveScannedDocuments();
     }
     return deleted;
   }
 
   /**
-   * Link a scan to a conversation
+   * Link a scanned document to a conversation
    */
-  async linkScanToConversation(scanId: string, conversationId: string): Promise<boolean> {
-    const scan = this.scans.get(scanId);
-    const conversation = this.conversations.get(conversationId);
+  async linkScannedDocumentToConversation(
+    documentId: string,
+    conversationId: string
+  ): Promise<boolean> {
+    const document = this.scannedDocuments.get(documentId);
+    if (!document) return false;
 
-    if (!scan || !conversation) {
-      return false;
-    }
-
-    // Add to scan's linked conversations
-    if (!scan.linkedConversations) {
-      scan.linkedConversations = [];
-    }
-    if (!scan.linkedConversations.includes(conversationId)) {
-      scan.linkedConversations.push(conversationId);
+    if (!document.relatedConversationIds) {
+      document.relatedConversationIds = [];
     }
 
-    // Add to conversation's linked scans
-    if (!conversation.linkedScans) {
-      conversation.linkedScans = [];
-    }
-    if (!conversation.linkedScans.includes(scanId)) {
-      conversation.linkedScans.push(scanId);
+    if (!document.relatedConversationIds.includes(conversationId)) {
+      document.relatedConversationIds.push(conversationId);
+      await this.saveScannedDocuments();
     }
 
-    await this.saveScans();
-    await this.saveConversations();
     return true;
   }
 
   /**
-   * Get suggested conversations for a scan based on content similarity
+   * Get scanned documents related to a conversation
    */
-  async getSuggestedConversations(scanId: string, limit: number = 5): Promise<ConversationSummary[]> {
-    const scan = this.scans.get(scanId);
-    if (!scan) {
-      return [];
-    }
-
-    const suggestions: Array<{ conversation: Conversation; score: number }> = [];
-
-    // Score conversations based on keyword overlap
-    for (const conv of this.conversations.values()) {
-      let score = 0;
-
-      // Check if any scan keywords appear in conversation messages
-      for (const message of conv.messages) {
-        const lowerContent = message.content.toLowerCase();
-        for (const keyword of scan.metadata.keywords) {
-          if (lowerContent.includes(keyword)) {
-            score += 1;
-          }
-        }
-        for (const name of scan.metadata.names) {
-          if (lowerContent.includes(name.toLowerCase())) {
-            score += 2;
-          }
-        }
-      }
-
-      if (score > 0) {
-        suggestions.push({ conversation: conv, score });
-      }
-    }
-
-    // Sort by score and convert to summaries
-    const sortedSuggestions = suggestions
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-
-    const summaries: ConversationSummary[] = [];
-    for (const { conversation } of sortedSuggestions) {
-      const lastMessage = conversation.messages[conversation.messages.length - 1];
-      summaries.push({
-        id: conversation.id,
-        title: conversation.title,
-        messageCount: conversation.messages.length,
-        lastMessage: lastMessage ? lastMessage.content.substring(0, 100) : '',
-        createdAt: conversation.createdAt,
-        updatedAt: conversation.updatedAt,
-        tags: conversation.tags
-      });
-    }
-
-    return summaries;
-  }
-
-  /**
-   * Get context around a matched term
-   */
-  private getContext(text: string, term: string, contextLength: number = 100): string {
-    const lowerText = text.toLowerCase();
-    const lowerTerm = term.toLowerCase();
-    const index = lowerText.indexOf(lowerTerm);
-    
-    if (index === -1) {
-      return text.substring(0, contextLength);
-    }
-
-    const start = Math.max(0, index - contextLength / 2);
-    const end = Math.min(text.length, index + term.length + contextLength / 2);
-    
-    let context = text.substring(start, end);
-    
-    if (start > 0) {
-      context = '...' + context;
-    }
-    if (end < text.length) {
-      context = context + '...';
-    }
-    
-    return context.trim();
+  async getScannedDocumentsByConversation(
+    conversationId: string
+  ): Promise<ScannedDocument[]> {
+    return Array.from(this.scannedDocuments.values()).filter(
+      doc => doc.relatedConversationIds?.includes(conversationId)
+    );
   }
 
   /**

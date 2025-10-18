@@ -17,12 +17,18 @@
     "example:router": "npm run build:backend && npm run build:examples && node dist-examples/router-api.js",
     "example:learning": "npm run build:backend && npm run build:examples && node dist-examples/learning-mode.js"
   },
-  "keywords": ["helpdesk", "ai", "offline", "memory"],
+  "keywords": [
+    "helpdesk",
+    "ai",
+    "offline",
+    "memory"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.5.9",
