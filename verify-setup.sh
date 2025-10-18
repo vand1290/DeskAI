@@ -16,7 +16,7 @@ if command -v node &> /dev/null; then
     NODE_VERSION=$(node --version)
     echo "✓ Node.js $NODE_VERSION installed"
 else
-    echo "✗ Node.js not found. Please install Node.js 16 or higher"
+    echo "✗ Node.js not found. Please install Node.js 18 or higher (20 recommended)"
     EXIT_CODE=1
 fi
 echo ""
