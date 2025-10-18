@@ -10,6 +10,14 @@ Your professional AI helpdesk with persistent memory - 100% offline and secure.
 - **Context awareness** - Reference previous conversations in new queries
 - **Session continuation** - Pick up where you left off
 
+### 🎓 Adaptive Learning Mode
+- **Pattern recognition** - Learns from your usage patterns and behaviors
+- **Smart suggestions** - Provides personalized tool and workflow recommendations
+- **Privacy-first** - All learning happens locally, no cloud processing
+- **User control** - Enable/disable learning and review or reset learned data
+- **Workflow detection** - Identifies common action sequences
+- **Topic tracking** - Understands your frequent discussion topics
+
 ### 📊 Local Analytics
 - **Usage statistics** - Track conversation and message counts
 - **Topic analysis** - Discover frequent discussion topics
@@ -18,7 +26,7 @@ Your professional AI helpdesk with persistent memory - 100% offline and secure.
 
 ### 🔒 Security & Privacy
 - **100% offline operation** - No network calls, no cloud storage
-- **Local-only storage** - Data stored in `out/conversations.json`
+- **Local-only storage** - Data stored in `out/conversations.json` and `out/learning.json`
 - **User control** - Export, delete, or manage your data anytime
 - **Transparent** - Open source and auditable
 
@@ -70,18 +78,22 @@ npm run lint
 DeskAI/
 ├── src/                    # Backend TypeScript code
 │   ├── memory.ts          # Core memory manager
+│   ├── learning.ts        # Learning mode manager
 │   ├── agent.ts           # AI agent logic
 │   ├── router.ts          # Request routing
 │   └── index.ts           # Main entry point
 ├── ui/                    # Frontend React code
 │   ├── components/        # React components
-│   │   └── ConversationHistory.tsx
+│   │   ├── ConversationHistory.tsx
+│   │   ├── LearningSettings.tsx
+│   │   └── AdaptiveSuggestions.tsx
 │   ├── App.tsx            # Main app component
 │   ├── Dashboard.tsx      # Chat dashboard
 │   ├── main.tsx           # React entry point
 │   └── index.html         # HTML template
 ├── out/                   # Local data storage
-│   └── conversations.json # Conversation database
+│   ├── conversations.json # Conversation database
+│   └── learning.json      # Learning data (patterns, preferences)
 ├── dist/                  # Compiled backend code
 └── dist-ui/               # Compiled frontend code
 ```
@@ -115,6 +127,20 @@ DeskAI/
 3. Explore frequent topics and patterns
 4. Track conversations over time
 
+### Using Learning Mode
+
+1. Navigate to the "Learning" tab in the navigation
+2. Enable or disable learning mode with the toggle
+3. View learning statistics showing tracked actions, tools, workflows, and topics
+4. Click "View Detailed Data" to see:
+   - Tool usage patterns with frequency counts
+   - Common workflow sequences you follow
+   - Frequent topics from your conversations
+5. See adaptive suggestions in the Dashboard based on your patterns
+6. Reset learning data anytime from the Learning Settings page
+
+**Privacy Note**: Learning mode operates entirely locally. All pattern analysis and suggestions are generated on your device. No data is sent to any external service.
+
 ## Memory System Architecture
 
 ### Storage Format
@@ -139,6 +165,20 @@ Conversations are stored as JSON in `out/conversations.json`:
 }
 ```
 
+Learning data is stored in `out/learning.json`:
+
+```json
+{
+  "enabled": true,
+  "actions": [...],
+  "toolUsage": {...},
+  "workflows": [...],
+  "frequentTopics": {...},
+  "preferences": {...},
+  "lastAnalyzed": 1234567890
+}
+```
+
 ### Key Components
 
 1. **MemoryManager** (`src/memory.ts`)
@@ -146,20 +186,36 @@ Conversations are stored as JSON in `out/conversations.json`:
    - Provides CRUD operations for conversations
    - Implements search and analytics
 
-2. **Agent** (`src/agent.ts`)
+2. **LearningManager** (`src/learning.ts`)
+   - Tracks user interactions and behavior patterns
+   - Detects workflow sequences
+   - Generates adaptive suggestions
+   - Manages learning preferences
+
+3. **Agent** (`src/agent.ts`)
    - Processes user messages
-   - Integrates with memory system
+   - Integrates with memory and learning systems
    - Maintains conversation context
 
-3. **Router** (`src/router.ts`)
+4. **Router** (`src/router.ts`)
    - Routes API requests to handlers
    - Coordinates between components
    - Provides unified interface
 
-4. **ConversationHistory** (`ui/components/ConversationHistory.tsx`)
+5. **ConversationHistory** (`ui/components/ConversationHistory.tsx`)
    - Visual interface for browsing history
    - Search and filter functionality
    - Conversation detail view
+
+6. **LearningSettings** (`ui/components/LearningSettings.tsx`)
+   - Learning mode controls
+   - Data review interface
+   - Reset functionality
+
+7. **AdaptiveSuggestions** (`ui/components/AdaptiveSuggestions.tsx`)
+   - Displays personalized recommendations
+   - Shows confidence scores
+   - Context-aware suggestions
 
 ## Privacy & Security
 
@@ -191,7 +247,53 @@ Remove conversations:
 
 ### Backing Up
 
-Your conversations are stored in `out/conversations.json`. Include this file in your backup strategy if you want to preserve your history.
+Your conversations are stored in `out/conversations.json` and learning data in `out/learning.json`. Include these files in your backup strategy if you want to preserve your history and learned patterns.
+
+## Learning Mode Details
+
+### How It Works
+
+DeskAI's learning mode analyzes your usage patterns entirely on your device:
+
+1. **Action Tracking**: Records your interactions (messages, searches, analytics views)
+2. **Pattern Detection**: Identifies frequently used tools and common workflows
+3. **Topic Analysis**: Tracks conversation topics from tags
+4. **Suggestion Generation**: Creates personalized recommendations based on patterns
+
+### What Gets Tracked
+
+- Tool usage (chat, search, analytics, filters)
+- Action sequences (workflow patterns)
+- Conversation topics (from tags)
+- Usage frequency and timing
+
+### What Doesn't Get Tracked
+
+- Message content (only metadata)
+- Personal information
+- Any data outside the application
+- Network activity (none exists)
+
+### Privacy Guarantees
+
+- ✅ **Local only** - All processing happens on your device
+- ✅ **No cloud sync** - Data never leaves your computer
+- ✅ **User controlled** - Enable/disable anytime
+- ✅ **Transparent** - Review all learned data
+- ✅ **Deletable** - Reset learning data completely
+
+### Suggestions
+
+The learning mode provides several types of suggestions:
+
+- **Tool Suggestions**: Frequently used features
+- **Workflow Suggestions**: Common action sequences
+- **Topic Suggestions**: Frequent discussion areas
+
+Each suggestion includes:
+- Confidence score (High/Medium/Low)
+- Usage reasoning
+- Contextual information
 
 ## Future Enhancements
 

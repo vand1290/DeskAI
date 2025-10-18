@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { ConversationHistory } from './components/ConversationHistory';
+import { LearningSettings } from './components/LearningSettings';
 
-type View = 'dashboard' | 'history';
+type View = 'dashboard' | 'history' | 'learning';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -25,6 +26,12 @@ export const App: React.FC = () => {
           >
             History
           </button>
+          <button
+            className={currentView === 'learning' ? 'active' : ''}
+            onClick={() => setCurrentView('learning')}
+          >
+            Learning
+          </button>
         </div>
       </nav>
 
@@ -42,6 +49,9 @@ export const App: React.FC = () => {
               setCurrentView('dashboard');
             }}
           />
+        )}
+        {currentView === 'learning' && (
+          <LearningSettings />
         )}
       </main>
 

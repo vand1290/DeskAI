@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Message } from '../src/memory';
+import { AdaptiveSuggestions } from './components/AdaptiveSuggestions';
 
 interface DashboardProps {
   conversationId: string | null;
@@ -22,6 +23,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [loading, setLoading] = useState(false);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -136,8 +138,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <button onClick={() => setShowAnalytics(!showAnalytics)}>
             {showAnalytics ? 'Hide' : 'Show'} Analytics
           </button>
+          <button onClick={() => setShowSuggestions(!showSuggestions)}>
+            {showSuggestions ? 'Hide' : 'Show'} Suggestions
+          </button>
         </div>
       </div>
+
+      {showSuggestions && (
+        <div className="suggestions-container">
+          <AdaptiveSuggestions onClose={() => setShowSuggestions(false)} />
+        </div>
+      )}
 
       {showAnalytics && analytics && (
         <div className="analytics-panel">
@@ -248,6 +259,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         .dashboard-actions button:hover {
           background: #0056b3;
+        }
+
+        .suggestions-container {
+          margin-bottom: 20px;
         }
 
         .analytics-panel {
