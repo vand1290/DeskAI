@@ -125,108 +125,68 @@ export class Router {
     };
   }
 
-  private async handleStartConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
-    const title = params?.title as string | undefined;
-    const tags = params?.tags as string[] | undefined;
-    
-    const conversationId = await this.agent.startConversation(title, tags);
+import { Message, RouteDecision, Agent } from './types.js';
+import { allAgents } from './agents.js';
+
+/**
+ * Deterministic routing logic based on keywords
+ */
+export function routeRequest(messages: Message[]): RouteDecision {
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage || lastMessage.role !== 'user') {
     return {
-      success: true,
-      data: { conversationId }
+      agentName: 'general',
+      reasoning: 'Default to general agent for non-user messages'
     };
   }
-
-  private async handleContinueConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.conversationId || typeof params.conversationId !== 'string') {
-      return { success: false, error: 'Conversation ID is required' };
-    }
-
-    const success = await this.agent.continueConversation(params.conversationId as string);
-    if (!success) {
-      return { success: false, error: 'Conversation not found' };
-    }
-
-    const history = await this.agent.getConversationHistory();
+  
+  const content = lastMessage.content.toLowerCase();
+  
+  // Code-related keywords
+  const codeKeywords = ['code', 'program', 'function', 'class', 'bug', 'debug', 'javascript', 'python', 'typescript', 'compile'];
+  if (codeKeywords.some(keyword => content.includes(keyword))) {
     return {
-      success: true,
-      data: { history }
+      agentName: 'code',
+      reasoning: 'Detected code-related keywords in request'
     };
   }
-
-  private async handleListConversations(): Promise<RouterResponse> {
-    const conversations = await this.memory.listConversations();
+  
+  // Data-related keywords
+  const dataKeywords = ['data', 'analyze', 'statistics', 'chart', 'graph', 'csv', 'excel', 'visualization'];
+  if (dataKeywords.some(keyword => content.includes(keyword))) {
     return {
-      success: true,
-      data: { conversations }
+      agentName: 'data',
+      reasoning: 'Detected data analysis keywords in request'
     };
   }
+  
+  // Default to general agent
+  return {
+    agentName: 'general',
+    reasoning: 'No specific domain detected, using general agent'
+  };
+}
 
-  private async handleGetConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.conversationId || typeof params.conversationId !== 'string') {
-      return { success: false, error: 'Conversation ID is required' };
-    }
+/**
+ * Find an agent by name
+ */
+export function getAgent(name: string): Agent | undefined {
+  return allAgents.find(agent => agent.name === name);
+}
 
-    const conversation = await this.memory.getConversation(params.conversationId as string);
-    if (!conversation) {
-      return { success: false, error: 'Conversation not found' };
-    }
-
-    return {
-      success: true,
-      data: { conversation }
-    };
-  }
-
-  private async handleSearchConversations(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.query || typeof params.query !== 'string') {
-      return { success: false, error: 'Query is required' };
-    }
-
-    const results = await this.memory.searchConversations(params.query as string);
-    return {
-      success: true,
-      data: { results }
-    };
-  }
-
-  private async handleDeleteConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.conversationId || typeof params.conversationId !== 'string') {
-      return { success: false, error: 'Conversation ID is required' };
-    }
-
-    const deleted = await this.memory.deleteConversation(params.conversationId as string);
-    return {
-      success: true,
-      data: { deleted }
-    };
-  }
-
-  private async handleExportConversations(): Promise<RouterResponse> {
-    const conversations = await this.memory.exportConversations();
-    return {
-      success: true,
-      data: { conversations }
-    };
-  }
-
-  private async handleGetAnalytics(): Promise<RouterResponse> {
-    const analytics = await this.memory.getAnalytics();
-    return {
-      success: true,
-      data: { analytics }
-    };
-  }
-
-  private async handleFilterByTags(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.tags || !Array.isArray(params.tags)) {
-      return { success: false, error: 'Tags array is required' };
-    }
-
-    const conversations = await this.memory.filterByTags(params.tags as string[]);
-    return {
-      success: true,
-      data: { conversations }
-    };
+/**
+ * Main meta-agent that routes and executes requests
+ */
+export async function handleRequest(messages: Message[]): Promise<{
+  response: string;
+  agent: string;
+  reasoning: string;
+}> {
+  const decision = routeRequest(messages);
+  const agent = getAgent(decision.agentName);
+  
+  if (!agent) {
+    throw new Error(`Agent '${decision.agentName}' not found`);
   }
 
   // Task chain handlers

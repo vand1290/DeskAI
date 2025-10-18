@@ -1,8 +1,12 @@
-# DeskAI
+# DeskAI - LocalMetaAgent (Offline)
 
-Your professional AI helpdesk with persistent memory - 100% offline and secure.
+## Overview
+DeskAI is an offline meta-agent that routes user requests to local models and tools, runs everything on-device, and provides a desktop UI. It targets Windows packaging via Tauri.
 
-## Features
+## Key Constraints
+- **100% Offline**: No network calls are made
+- **Deterministic Behavior**: All responses are predictable and reproducible
+- **Windows Packaging**: Packaged as a Windows .exe using Tauri
 
 ### 🔗 Task Chaining & Workflows
 - **Visual workflow builder** - Create and edit task chains with an intuitive UI
@@ -18,58 +22,32 @@ Your professional AI helpdesk with persistent memory - 100% offline and secure.
 - **Context awareness** - Reference previous conversations in new queries
 - **Session continuation** - Pick up where you left off
 
-### 📊 Local Analytics
-- **Usage statistics** - Track conversation and message counts
-- **Topic analysis** - Discover frequent discussion topics
-- **Trend detection** - Understand your interaction patterns over time
-- **Privacy-focused** - All analytics computed locally, never sent anywhere
+## Getting Started (Development)
 
-### 🔒 Security & Privacy
-- **100% offline operation** - No network calls, no cloud storage
-- **Local-only storage** - Data stored in `out/conversations.json`
-- **User control** - Export, delete, or manage your data anytime
-- **Transparent** - Open source and auditable
+### Prerequisites
+1. Node.js 18+ installed
+2. Rust toolchain installed
+3. Tauri prerequisites for your platform (see [Tauri docs](https://tauri.app/v1/guides/getting-started/prerequisites))
 
-### 💬 Intelligent Chat Interface
-- **Real-time responses** - Interactive conversation experience
-- **Multi-conversation support** - Manage multiple discussion threads
-- **Tag system** - Organize conversations by topic
-- **Search functionality** - Find past messages quickly
-
-## Installation
-
+### Installation
 ```bash
-# Clone the repository
-git clone https://github.com/vand1290/DeskAI.git
-cd DeskAI
-
-# Install dependencies
+# Install root dependencies
 npm install
 
-# Build the project
-npm run build
-
-# Start the application
-npm start
+# Install UI dependencies
+cd ui && npm install && cd ..
 ```
 
-## Development
-
+### Development Commands
 ```bash
-# Run in development mode with hot reload
-npm run dev
+# Build backend and UI
+npm run build
 
-# Build TypeScript backend only
-npm run build:backend
-
-# Build React frontend only  
-npm run build:frontend
-
-# Run tests
+# Run unit tests
 npm test
 
-# Lint code
-npm run lint
+# Run UI in development mode (offline)
+npm run ui:dev
 ```
 
 ## Project Structure
@@ -99,27 +77,15 @@ DeskAI/
 └── dist-ui/               # Compiled frontend code
 ```
 
-## Usage
+The built executable will be located in `src-tauri/target/release/`.
 
-### Starting a Conversation
+## Offline Usage
+Models are referenced by name (e.g., `qwen2.5:7b`), but loading and inference are user-provided via local runners. The provided agents are deterministic stubs by default; you can plug in your local model runners later.
 
-1. Launch DeskAI and navigate to the Dashboard
-2. Type your message in the input box
-3. Conversations are automatically created and saved
-
-### Browsing History
-
-1. Click the "History" button in the navigation
-2. View all past conversations with message counts and timestamps
-3. Click any conversation to view full details
-4. Use the search bar to find specific content
-
-### Managing Conversations
-
-- **Delete**: Click the × button on any conversation
-- **Continue**: Select a conversation from history to continue it in the dashboard
-- **Export**: Use the export function to download all your data
-- **Tags**: Add tags to conversations for better organization
+### Integrating Local Models
+To connect your own local models:
+1. Edit `src/agents.ts`
+2. Replace the stub `invoke` methods with calls to your local model runtime (e.g., Ollama, llama.cpp, etc.)
 
 ### Creating Workflows
 
@@ -154,33 +120,43 @@ DeskAI/
 
 ### Viewing Analytics
 
-1. Click "Show Analytics" in the Dashboard
-2. View statistics about your usage
-3. Explore frequent topics and patterns
-4. Track conversations over time
+### Meta-Agent Router
+The system uses a deterministic keyword-based router that directs queries to specialized agents:
+- **General Agent**: Default agent for general queries
+- **Code Agent**: Specialized for programming and debugging tasks
+- **Data Agent**: Focused on data analysis and visualization
 
-## Memory System Architecture
+### Tools System
+All tools are allowlisted and deterministic:
+- **file_read**: Read files from the `out` directory
+- **file_write**: Write files to the `out` directory
+- **file_list**: List files in the `out` directory
 
-### Storage Format
+**Security Note**: Shell and filesystem access are restricted to the `out` directory by default.
 
-Conversations are stored as JSON in `out/conversations.json`:
-
-```json
-{
-  "id": "unique-id",
-  "title": "Conversation Title",
-  "messages": [
-    {
-      "id": "message-id",
-      "role": "user|agent",
-      "content": "Message text",
-      "timestamp": 1234567890
-    }
-  ],
-  "createdAt": 1234567890,
-  "updatedAt": 1234567890,
-  "tags": ["topic1", "topic2"]
-}
+## Project Structure
+```
+DeskAI/
+├── src/                    # Backend TypeScript
+│   ├── types.ts           # Type definitions
+│   ├── agents.ts          # Agent implementations
+│   ├── router.ts          # Meta-agent routing logic
+│   ├── tools.ts           # Offline tools
+│   └── index.ts           # Main exports
+├── ui/                     # React UI
+│   ├── src/
+│   │   ├── App.tsx        # Main React component
+│   │   ├── App.css        # Styles
+│   │   └── main.tsx       # Entry point
+│   └── package.json
+├── src-tauri/              # Tauri desktop app
+│   ├── src/
+│   │   └── main.rs        # Rust entry point
+│   ├── tauri.conf.json    # Tauri configuration
+│   └── Cargo.toml         # Rust dependencies
+├── out/                    # Workspace directory
+├── package.json            # Root package configuration
+└── README.md               # This file
 ```
 
 Workflows are stored as JSON in `out/task-chains.json`:
@@ -359,26 +335,17 @@ Planned features:
 - [ ] AI-powered summarization
 - [ ] Hardware scanner integration
 
-## Contributing
+# Tests cover:
+# - Router logic and agent selection
+# - Tool security and functionality
+# - Deterministic behavior
+```
 
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+## Security Notes
+- All operations are performed locally on your device
+- No data is sent over the network
+- File operations are restricted to the `out` directory
+- All tools are allowlisted and deterministic
 
 ## License
-
-MIT License - see LICENSE file for details
-
-## Support
-
-- 📖 Documentation: This README and SECURITY.md
-- 🐛 Issues: GitHub Issues
-- 💬 Discussions: GitHub Discussions
-- 📧 Contact: Repository maintainers
-
----
-
-**DeskAI** - Your conversations, your device, your control.
+See LICENSE file for details.
