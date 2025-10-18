@@ -1,11 +1,10 @@
 node_modules/
 dist/
-dist-ui/
-dist-examples/
 out/
-examples/data/
 *.log
 .DS_Store
-.env
 .vscode/
 .idea/
+# Ignore compiled JS files in src (should use dist)
+src/**/*.js
+src/**/*.js.map
