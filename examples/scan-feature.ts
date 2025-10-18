@@ -13,7 +13,7 @@ async function main() {
 
   // Initialize DeskAI
   const dataDir = './out-scan-example';
-  const { memory, scanProcessor, router } = await initializeDeskAI(dataDir);
+  const { memory, router } = await initializeDeskAI(dataDir);
 
   console.log('✓ DeskAI initialized\n');
 
@@ -132,7 +132,7 @@ Please remit payment to: accounts@johnsmith.com`,
   });
   
   if (searchResponse.success) {
-    const data = searchResponse.data as { results: any[] };
+    const data = searchResponse.data as { results: unknown[] };
     console.log(`✓ Router search found ${data.results.length} result(s)\n`);
   }
 
@@ -143,7 +143,7 @@ Please remit payment to: accounts@johnsmith.com`,
   });
   
   if (suggestionsResponse.success) {
-    const data = suggestionsResponse.data as { suggestions: any[] };
+    const data = suggestionsResponse.data as { suggestions: unknown[] };
     console.log(`✓ Router found ${data.suggestions.length} suggestion(s)\n`);
   }
 
