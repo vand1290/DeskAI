@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { ConversationHistory } from './components/ConversationHistory';
+import { ToolsPanel } from './components/ToolsPanel';
 
-type View = 'dashboard' | 'history';
+type View = 'dashboard' | 'history' | 'tools';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -25,6 +26,12 @@ export const App: React.FC = () => {
           >
             History
           </button>
+          <button
+            className={currentView === 'tools' ? 'active' : ''}
+            onClick={() => setCurrentView('tools')}
+          >
+            Tools
+          </button>
         </div>
       </nav>
 
@@ -42,6 +49,9 @@ export const App: React.FC = () => {
               setCurrentView('dashboard');
             }}
           />
+        )}
+        {currentView === 'tools' && (
+          <ToolsPanel />
         )}
       </main>
 
