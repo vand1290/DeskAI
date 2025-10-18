@@ -16,6 +16,22 @@ export interface Conversation {
   updatedAt: number;
   tags?: string[];
   metadata?: Record<string, unknown>;
+  linkedScans?: string[]; // IDs of linked scan documents
+}
+
+export interface ScanDocument {
+  id: string;
+  filename: string;
+  extractedText: string;
+  metadata: {
+    names: string[];
+    dates: string[];
+    totals: string[];
+    keywords: string[];
+  };
+  uploadedAt: number;
+  filePath: string;
+  linkedConversations?: string[]; // IDs of related conversations
 }
 
 export interface ScannedDocument {
@@ -55,6 +71,17 @@ export interface SearchResult {
   score: number;
 }
 
+export interface ScanSearchResult {
+  documentId: string;
+  filename: string;
+  matches: Array<{
+    type: 'name' | 'date' | 'total' | 'keyword' | 'text';
+    value: string;
+    context: string;
+  }>;
+  score: number;
+}
+
 export interface Analytics {
   totalConversations: number;
   totalMessages: number;
@@ -65,7 +92,7 @@ export interface Analytics {
 }
 
 /**
- * MemoryManager handles persistent storage and retrieval of conversations
+ * MemoryManager handles persistent storage and retrieval of conversations and scans
  * All data is stored locally in the out/ directory as JSON
  * No network calls are made - operates completely offline
  */
@@ -84,7 +111,7 @@ export class MemoryManager {
   }
 
   /**
-   * Initialize the memory manager by loading existing conversations
+   * Initialize the memory manager by loading existing conversations and scans
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;

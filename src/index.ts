@@ -4,7 +4,7 @@ import { Router } from './router.js';
 import { Scanner } from './scanner.js';
 
 /**
- * Initialize and export the DeskAI system
+ * Main entry point for the offline meta-agent backend
  */
 export async function initializeDeskAI(dataDir: string = './out') {
   const memory = new MemoryManager(dataDir);
