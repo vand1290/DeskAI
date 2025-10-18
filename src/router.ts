@@ -1,13 +1,6 @@
 import { MemoryManager } from './memory.js';
 import { Agent } from './agent.js';
-import { 
-  WritingTool, 
-  PhotoTool, 
-  DocumentTool, 
-  HandwritingTool, 
-  FileSorter,
-  SortCriteria 
-} from './tools.js';
+import { ScanProcessor } from './scan-processor.js';
 
 export interface RouterRequest {
   action: string;
@@ -22,25 +15,17 @@ export interface RouterResponse {
 
 /**
  * Router handles routing of requests to appropriate handlers
- * Provides a simple API for interacting with the memory system and agent
+ * Provides a simple API for interacting with the memory system, agent, and scan processor
  */
 export class Router {
   private memory: MemoryManager;
   private agent: Agent;
-  private writingTool: WritingTool;
-  private photoTool: PhotoTool;
-  private documentTool: DocumentTool;
-  private handwritingTool: HandwritingTool;
-  private fileSorter: FileSorter;
+  private scanProcessor: ScanProcessor;
 
-  constructor(memory: MemoryManager, agent: Agent, dataDir: string = './out') {
+  constructor(memory: MemoryManager, agent: Agent, scanProcessor: ScanProcessor) {
     this.memory = memory;
     this.agent = agent;
-    this.writingTool = new WritingTool(`${dataDir}/documents`);
-    this.photoTool = new PhotoTool(`${dataDir}/photos`);
-    this.documentTool = new DocumentTool(`${dataDir}/documents`);
-    this.handwritingTool = new HandwritingTool();
-    this.fileSorter = new FileSorter();
+    this.scanProcessor = scanProcessor;
   }
 
   /**
@@ -79,55 +64,26 @@ export class Router {
         case 'filterByTags':
           return await this.handleFilterByTags(request.params);
         
-        // Writing tool actions
-        case 'createDocument':
-          return await this.handleCreateDocument(request.params);
+        case 'processScan':
+          return await this.handleProcessScan(request.params);
         
-        case 'editDocument':
-          return await this.handleEditDocument(request.params);
+        case 'listScans':
+          return await this.handleListScans();
         
-        case 'readDocument':
-          return await this.handleReadDocument(request.params);
+        case 'getScan':
+          return await this.handleGetScan(request.params);
         
-        case 'listDocuments':
-          return await this.handleListDocuments();
+        case 'searchScans':
+          return await this.handleSearchScans(request.params);
         
-        case 'deleteDocument':
-          return await this.handleDeleteDocument(request.params);
+        case 'deleteScan':
+          return await this.handleDeleteScan(request.params);
         
-        // Photo tool actions
-        case 'getImageInfo':
-          return await this.handleGetImageInfo(request.params);
+        case 'linkScanToConversation':
+          return await this.handleLinkScanToConversation(request.params);
         
-        case 'extractTextFromImage':
-          return await this.handleExtractTextFromImage(request.params);
-        
-        case 'listImages':
-          return await this.handleListImages();
-        
-        // Document tool actions
-        case 'summarizeDocument':
-          return await this.handleSummarizeDocument(request.params);
-        
-        case 'extractData':
-          return await this.handleExtractData(request.params);
-        
-        case 'getDocumentInfo':
-          return await this.handleGetDocumentInfo(request.params);
-        
-        // Handwriting tool actions
-        case 'extractHandwriting':
-          return await this.handleExtractHandwriting(request.params);
-        
-        // File sorting actions
-        case 'sortFiles':
-          return await this.handleSortFiles(request.params);
-        
-        case 'organizeByDate':
-          return await this.handleOrganizeByDate(request.params);
-        
-        case 'organizeByType':
-          return await this.handleOrganizeByType(request.params);
+        case 'getSuggestedConversations':
+          return await this.handleGetSuggestedConversations(request.params);
         
         default:
           return {
@@ -263,154 +219,129 @@ export class Router {
     };
   }
 
-  // Writing tool handlers
-  private async handleCreateDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+  private async handleProcessScan(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filePath || typeof params.filePath !== 'string') {
+      return { success: false, error: 'File path is required' };
+    }
     if (!params?.filename || typeof params.filename !== 'string') {
       return { success: false, error: 'Filename is required' };
     }
-    if (!params?.content || typeof params.content !== 'string') {
-      return { success: false, error: 'Content is required' };
+
+    try {
+      const scanDocument = await this.scanProcessor.processScan(
+        params.filePath as string,
+        params.filename as string
+      );
+      await this.memory.addScan(scanDocument);
+      
+      // Get suggested conversations
+      const suggestions = await this.memory.getSuggestedConversations(scanDocument.id);
+
+      return {
+        success: true,
+        data: { 
+          scan: scanDocument,
+          suggestedConversations: suggestions
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to process scan'
+      };
+    }
+  }
+
+  private async handleListScans(): Promise<RouterResponse> {
+    const scans = await this.memory.listScans();
+    return {
+      success: true,
+      data: { scans }
+    };
+  }
+
+  private async handleGetScan(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.scanId || typeof params.scanId !== 'string') {
+      return { success: false, error: 'Scan ID is required' };
     }
 
-    const result = await this.writingTool.createDocument(
-      params.filename as string,
-      params.content as string
+    const scan = await this.memory.getScan(params.scanId as string);
+    if (!scan) {
+      return { success: false, error: 'Scan not found' };
+    }
+
+    return {
+      success: true,
+      data: { scan }
+    };
+  }
+
+  private async handleSearchScans(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.query || typeof params.query !== 'string') {
+      return { success: false, error: 'Query is required' };
+    }
+
+    const results = await this.memory.searchScans(params.query as string);
+    return {
+      success: true,
+      data: { results }
+    };
+  }
+
+  private async handleDeleteScan(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.scanId || typeof params.scanId !== 'string') {
+      return { success: false, error: 'Scan ID is required' };
+    }
+
+    const scan = await this.memory.getScan(params.scanId as string);
+    if (scan) {
+      await this.scanProcessor.deleteScan(scan.id, scan.filename);
+    }
+
+    const deleted = await this.memory.deleteScan(params.scanId as string);
+    return {
+      success: true,
+      data: { deleted }
+    };
+  }
+
+  private async handleLinkScanToConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.scanId || typeof params.scanId !== 'string') {
+      return { success: false, error: 'Scan ID is required' };
+    }
+    if (!params?.conversationId || typeof params.conversationId !== 'string') {
+      return { success: false, error: 'Conversation ID is required' };
+    }
+
+    const linked = await this.memory.linkScanToConversation(
+      params.scanId as string,
+      params.conversationId as string
     );
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+
+    if (!linked) {
+      return { success: false, error: 'Failed to link scan to conversation' };
+    }
+
+    return {
+      success: true,
+      data: { linked }
+    };
   }
 
-  private async handleEditDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-    if (!params?.content || typeof params.content !== 'string') {
-      return { success: false, error: 'Content is required' };
+  private async handleGetSuggestedConversations(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.scanId || typeof params.scanId !== 'string') {
+      return { success: false, error: 'Scan ID is required' };
     }
 
-    const result = await this.writingTool.editDocument(
-      params.filename as string,
-      params.content as string
+    const limit = typeof params?.limit === 'number' ? params.limit : 5;
+    const suggestions = await this.memory.getSuggestedConversations(
+      params.scanId as string,
+      limit
     );
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
 
-  private async handleReadDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.writingTool.readDocument(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleListDocuments(): Promise<RouterResponse> {
-    const result = await this.writingTool.listDocuments();
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleDeleteDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.writingTool.deleteDocument(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  // Photo tool handlers
-  private async handleGetImageInfo(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.photoTool.getImageInfo(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleExtractTextFromImage(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.photoTool.extractText(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleListImages(): Promise<RouterResponse> {
-    const result = await this.photoTool.listImages();
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  // Document tool handlers
-  private async handleSummarizeDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.documentTool.summarizeDocument(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleExtractData(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const pattern = params?.pattern as string | undefined;
-    const result = await this.documentTool.extractData(params.filename as string, pattern);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleGetDocumentInfo(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.documentTool.getDocumentInfo(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  // Handwriting tool handlers
-  private async handleExtractHandwriting(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.handwritingTool.extractHandwriting(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  // File sorting handlers
-  private async handleSortFiles(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.directory || typeof params.directory !== 'string') {
-      return { success: false, error: 'Directory is required' };
-    }
-    if (!params?.criteria || typeof params.criteria !== 'object') {
-      return { success: false, error: 'Sort criteria is required' };
-    }
-
-    const result = await this.fileSorter.sortFiles(
-      params.directory as string,
-      params.criteria as SortCriteria
-    );
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleOrganizeByDate(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.directory || typeof params.directory !== 'string') {
-      return { success: false, error: 'Directory is required' };
-    }
-
-    const result = await this.fileSorter.organizeByDate(params.directory as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleOrganizeByType(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.directory || typeof params.directory !== 'string') {
-      return { success: false, error: 'Directory is required' };
-    }
-
-    const result = await this.fileSorter.organizeByType(params.directory as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+    return {
+      success: true,
+      data: { suggestions }
+    };
   }
 }

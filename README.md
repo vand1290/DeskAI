@@ -10,6 +10,13 @@ Your professional AI helpdesk with persistent memory - 100% offline and secure.
 - **Context awareness** - Reference previous conversations in new queries
 - **Session continuation** - Pick up where you left off
 
+### 📄 Scan-to-Search Feature
+- **OCR text extraction** - Extract text from scanned documents and images offline
+- **Smart metadata extraction** - Automatically identify names, dates, amounts, and keywords
+- **Powerful search** - Search across all scanned documents by any criteria
+- **Document linking** - Automatically suggest related conversations based on content
+- **Privacy-focused** - All processing done locally using Tesseract.js
+
 ### 📊 Local Analytics
 - **Usage statistics** - Track conversation and message counts
 - **Topic analysis** - Discover frequent discussion topics
@@ -85,20 +92,21 @@ DeskAI/
 │   ├── memory.ts          # Core memory manager
 │   ├── agent.ts           # AI agent logic
 │   ├── router.ts          # Request routing
-│   ├── tools.ts           # Secretary tools (NEW)
+│   ├── scan-processor.ts  # OCR and scan processing
 │   └── index.ts           # Main entry point
 ├── ui/                    # Frontend React code
 │   ├── components/        # React components
 │   │   ├── ConversationHistory.tsx
-│   │   └── ToolsPanel.tsx        # Secretary tools UI (NEW)
+│   │   ├── ScanUpload.tsx
+│   │   └── ScanSearch.tsx
 │   ├── App.tsx            # Main app component
 │   ├── Dashboard.tsx      # Chat dashboard
 │   ├── main.tsx           # React entry point
 │   └── index.html         # HTML template
 ├── out/                   # Local data storage
 │   ├── conversations.json # Conversation database
-│   ├── documents/         # User documents (NEW)
-│   └── photos/            # User photos (NEW)
+│   ├── scans.json         # Scan metadata database
+│   └── scans/             # Scanned document files
 ├── dist/                  # Compiled backend code
 └── dist-ui/               # Compiled frontend code
 ```
@@ -125,7 +133,16 @@ DeskAI/
 - **Export**: Use the export function to download all your data
 - **Tags**: Add tags to conversations for better organization
 
-### Using Secretary Tools
+### Using Scan-to-Search
+
+1. **Upload Scans**: Click "Upload Scan" in the navigation
+2. **Process Documents**: Drag and drop or select an image file (JPG, PNG, etc.)
+3. **View Results**: See extracted names, dates, amounts, and keywords
+4. **Link to Conversations**: Review and link suggested related conversations
+5. **Search Scans**: Use "Search Scans" to find specific information across all documents
+6. **Manage Scans**: View, search, and delete scanned documents as needed
+
+### Viewing Analytics
 
 1. Click the "Tools" tab in the navigation
 2. Select a tool category:
@@ -156,36 +173,70 @@ Conversations are stored as JSON in `out/conversations.json`:
   ],
   "createdAt": 1234567890,
   "updatedAt": 1234567890,
-  "tags": ["topic1", "topic2"]
+  "tags": ["topic1", "topic2"],
+  "linkedScans": ["scan-id-1", "scan-id-2"]
+}
+```
+
+Scanned documents are stored in `out/scans.json`:
+
+```json
+{
+  "id": "scan-id",
+  "filename": "document.jpg",
+  "extractedText": "Full OCR text...",
+  "metadata": {
+    "names": ["John Smith", "Jane Doe"],
+    "dates": ["01/15/2024"],
+    "totals": ["$1,234.56"],
+    "keywords": ["invoice", "payment"]
+  },
+  "uploadedAt": 1234567890,
+  "filePath": "out/scans/scan-id_document.jpg",
+  "linkedConversations": ["conv-id-1"]
 }
 ```
 
 ### Key Components
 
 1. **MemoryManager** (`src/memory.ts`)
-   - Handles all data persistence
-   - Provides CRUD operations for conversations
+   - Handles all data persistence for conversations and scans
+   - Provides CRUD operations for conversations and scanned documents
    - Implements search and analytics
+   - Manages linking between scans and conversations
 
-2. **Agent** (`src/agent.ts`)
+2. **ScanProcessor** (`src/scan-processor.ts`)
+   - Performs OCR using Tesseract.js (offline)
+   - Extracts structured metadata (names, dates, amounts, keywords)
+   - Processes and stores scanned images
+   - Provides search functionality across scanned documents
+
+3. **Agent** (`src/agent.ts`)
    - Processes user messages
    - Integrates with memory system
    - Maintains conversation context
 
-3. **Router** (`src/router.ts`)
+4. **Router** (`src/router.ts`)
    - Routes API requests to handlers
    - Coordinates between components
-   - Provides unified interface
+   - Provides unified interface for conversations and scans
 
-4. **ConversationHistory** (`ui/components/ConversationHistory.tsx`)
+5. **ConversationHistory** (`ui/components/ConversationHistory.tsx`)
    - Visual interface for browsing history
    - Search and filter functionality
    - Conversation detail view
 
-5. **ToolsPanel** (`ui/components/ToolsPanel.tsx`) _(NEW)_
-   - Secretary tools interface
-   - Tabbed navigation between tools
-   - File management and preview
+6. **ScanUpload** (`ui/components/ScanUpload.tsx`)
+   - Drag-and-drop file upload interface
+   - Real-time OCR processing feedback
+   - Display extracted metadata
+   - Show suggested related conversations
+
+7. **ScanSearch** (`ui/components/ScanSearch.tsx`)
+   - Search interface for scanned documents
+   - Browse all scans
+   - View detailed scan information
+   - Manage scanned documents
 
 ## Privacy & Security
 
@@ -223,12 +274,10 @@ Your conversations are stored in `out/conversations.json`. Include this file in 
 
 Planned features:
 - [ ] Advanced semantic search with local embeddings
-- [ ] Full OCR integration with Tesseract
-- [ ] Handwriting recognition with TrOCR/HTR
-- [ ] PDF document support
-- [ ] LLM integration for document summarization
-- [ ] Multi-modal support (more document formats)
+- [ ] Conversation summarization
+- [x] Multi-modal support (images, documents) - Scan-to-search implemented
 - [ ] Enhanced context extraction
+- [x] Learning from file content - OCR and metadata extraction implemented
 - [ ] Richer analytics dashboards
 - [ ] Optional encryption at rest
 - [ ] Import/export in multiple formats
