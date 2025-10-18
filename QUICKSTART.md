@@ -1,8 +1,8 @@
-# DeskAI Quick Start Guide
+# Quick Start Guide
 
-Get up and running with DeskAI's persistent memory system in minutes!
+## Get Started with DeskAI Learning Mode in 5 Minutes
 
-## Installation
+### Installation
 
 ```bash
 # Clone the repository
@@ -11,192 +11,148 @@ cd DeskAI
 
 # Install dependencies
 npm install
+
+# Start the application
+npm start
 ```
 
-## Quick Test
+Visit **http://localhost:3000** in your browser.
+
+### First Steps
+
+#### 1. Understanding the Interface
+
+When you open DeskAI, you'll see:
+- 🧠 **Learning Mode** - Toggle switch (enabled by default)
+- 📊 **Learning Statistics** - Shows tracked data metrics
+- 💡 **Adaptive Suggestions** - Personalized tool recommendations
+- 🛠️ **Available Tools** - Click to simulate usage
+- 📚 **Review Learned Data** - View, export, or reset preferences
+
+#### 2. Start Using Tools
+
+Click on any tool button to simulate usage:
+- Create Ticket
+- Search Knowledge Base
+- Send Email
+- Update Status
+- And more...
+
+Each click is tracked when learning mode is enabled.
+
+#### 3. Watch the Magic Happen
+
+After clicking a few tools, you'll notice:
+- **Statistics update** - Shows tools tracked, interactions, patterns
+- **Suggestions appear** - Based on your usage patterns
+- **Badges indicate why** - Frequently Used, Workflow Pattern, Time-based
+
+#### 4. Build Workflow Patterns
+
+Use tools in sequence to teach the system your workflows:
+
+**Example Workflow:**
+1. Click "Create Ticket"
+2. Click "Search Knowledge Base"
+3. Click "Send Email"
+4. Repeat the same sequence
+
+The system will learn this pattern and suggest the next likely tool!
+
+#### 5. Review Your Data
+
+Click **"View Learned Preferences"** to see:
+- Tool usage counts and timestamps
+- Learned workflow patterns with frequency
+- Time-based usage patterns (hourly/daily)
+
+All data is stored locally in your browser - never sent anywhere!
+
+#### 6. Control Your Learning
+
+**Disable Learning:**
+- Toggle the switch to stop tracking
+- Suggestions will be hidden
+- Existing data is preserved
+
+**Reset Learning:**
+- Click "Reset Learning Data"
+- Confirm in the modal
+- All learned data is cleared
+- Start fresh!
+
+**Export Your Data:**
+- Click "Export Data"
+- Save as JSON file
+- Backup your learned preferences
+
+### Privacy Features
+
+✅ **100% Local** - All data in browser localStorage  
+✅ **No Tracking** - No analytics or external calls  
+✅ **User Control** - Easy disable/reset anytime  
+✅ **Transparent** - View all data in JSON format  
+
+### Understanding Suggestions
+
+Suggestions come from three sources:
+
+1. **🔥 Frequently Used** (0.5x weight)
+   - Tools you use most often
+   - Based on total usage count
+
+2. **🔄 Workflow Pattern** (3.0x weight - highest priority)
+   - Tools that follow other tools in sequences
+   - Learned from your usage patterns
+
+3. **⏰ Time-based** (2.0x weight)
+   - Tools you typically use at this time
+   - Based on hour of day and day of week
+
+### Tips for Best Results
+
+1. **Use tools consistently** - More data = better suggestions
+2. **Follow workflows** - Use tools in logical sequences
+3. **Be patient** - Patterns emerge after 5-10 interactions
+4. **Review regularly** - Check what the system learned
+5. **Reset if needed** - Start over if patterns don't match your needs
+
+### Running Tests
 
 ```bash
-# Run all tests to verify everything works
+# Run all tests
 npm test
 
-# All 91 tests should pass ✓
+# Expected: 40 tests passing
 ```
 
-## Try the Examples
+### Troubleshooting
 
-### Basic Usage Example
-```bash
-npm run example:basic
-```
+**No suggestions appearing?**
+- Use more tools (need at least 1-2 interactions)
+- Check that learning mode is enabled
 
-This will:
-- Initialize the memory system
-- Create a conversation
-- Exchange messages
-- Show conversation history
-- Display analytics
-- Save everything to `examples/data/conversations.json`
+**Data not persisting?**
+- Ensure browser localStorage is enabled
+- Check browser privacy settings
 
-### Router API Example
-```bash
-npm run example:router
-```
+**Want to start fresh?**
+- Use the "Reset Learning Data" button
+- All data will be cleared
 
-This demonstrates the programmatic API for integrating with other systems.
+### What's Next?
 
-### Workflow Automation Example
-```bash
-npm run example:workflow
-```
+- Continue using tools to build richer patterns
+- Export your data for backup
+- Share feedback on what works well
+- Suggest new features!
 
-This demonstrates the new task chaining feature:
-- Creates a workflow with multiple steps
-- Executes scan → OCR → summarize → save pipeline
-- Shows step-by-step execution results
-- Saves workflow to `out/task-chains.json`
+### Need Help?
 
-## View the Data
+- Check [README.md](README.md) for full documentation
+- Read [LEARNING_MODE.md](LEARNING_MODE.md) for technical details
+- Open an issue on GitHub for questions
 
-After running the examples, check out the stored data:
+---
 
-```bash
-# View conversations
-cat examples/data/conversations.json
-
-# View workflows
-cat out/task-chains.json
-```
-
-You'll see all your data stored in human-readable JSON format!
-
-## Build the Project
-
-```bash
-# Build backend (TypeScript → JavaScript)
-npm run build:backend
-
-# Build frontend (React UI)
-npm run build:frontend
-
-# Build everything
-npm run build
-```
-
-## Development Mode
-
-```bash
-# Run in development mode with hot reload
-npm run dev
-```
-
-## Project Structure
-
-```
-DeskAI/
-├── src/                    # Backend TypeScript code
-│   ├── memory.ts          # Core memory management
-│   ├── agent.ts           # Conversation agent
-│   ├── router.ts          # API routing
-│   ├── taskChain.ts       # Workflow engine
-│   └── __tests__/         # Unit tests
-│
-├── ui/                    # Frontend React code
-│   ├── components/        # React components
-│   ├── App.tsx            # Main app
-│   ├── Dashboard.tsx      # Chat interface
-│   └── Workflows.tsx      # Workflow management
-│
-├── examples/              # Usage examples
-│   ├── basic-usage.ts
-│   ├── router-api.ts
-│   ├── workflow-demo.ts   # Workflow example
-│   └── data/             # Example data storage
-│
-└── out/                   # Your conversation data
-    ├── conversations.json # Conversations
-    └── task-chains.json   # Workflows
-```
-
-## Key Features
-
-✅ **Persistent Memory** - All conversations automatically saved locally  
-✅ **Task Chaining** - Create workflows to automate sequences of actions  
-✅ **Visual Workflow Builder** - Intuitive UI for workflow creation  
-✅ **Search & Filter** - Find past conversations and workflows quickly  
-✅ **Analytics** - Track usage patterns and frequent topics  
-✅ **100% Offline** - No network calls, completely private  
-✅ **Export/Delete** - Full control over your data  
-✅ **Type-Safe** - Built with TypeScript  
-
-## Using in Your Code
-
-### Initialize DeskAI
-```typescript
-import { initializeDeskAI } from './dist/index.js';
-
-const { memory, agent, taskChainManager, router } = await initializeDeskAI('./my-data');
-```
-
-### Start a Conversation
-```typescript
-const conversationId = await agent.startConversation('My Topic', ['tag1', 'tag2']);
-```
-
-### Send Messages
-```typescript
-const response = await agent.processMessage('Hello, DeskAI!');
-console.log(response.content);
-```
-
-### Get History
-```typescript
-const conversations = await memory.listConversations();
-const analytics = await memory.getAnalytics();
-```
-
-### Create and Execute Workflows
-```typescript
-// Create a workflow
-const workflow = await taskChainManager.createChain(
-  'My Workflow',
-  'Description of what it does',
-  ['tag1', 'tag2']
-);
-
-// Add steps
-await taskChainManager.addStep(workflow.id, 'scan', 'Scan Document');
-await taskChainManager.addStep(workflow.id, 'ocr', 'Extract Text');
-await taskChainManager.addStep(workflow.id, 'save', 'Save Result');
-
-// Execute
-const result = await taskChainManager.executeChain(workflow.id, inputData);
-console.log(result.success ? 'Success!' : 'Failed');
-```
-
-## Next Steps
-
-- 📖 Read the full [README.md](README.md) for detailed documentation
-- 🔒 Check [SECURITY.md](SECURITY.md) for privacy and security info
-- 🧪 Explore the [examples/](examples/) directory
-- 💻 Browse the [src/](src/) code
-- 🎨 Check out the [ui/](ui/) components
-
-## Need Help?
-
-- Run `npm test` to verify your installation
-- Check the examples in `examples/` directory
-- Review the test files in `src/__tests__/` for usage patterns
-- Read the inline code documentation
-
-## Common Commands
-
-```bash
-npm test                # Run all tests
-npm run lint            # Check code quality
-npm run build           # Build everything
-npm run example:basic   # Run basic example
-npm run example:router  # Run router example
-npm run example:workflow # Run workflow example
-```
-
-Happy coding! 🚀
+**Enjoy your adaptive, privacy-first helpdesk experience!** 🚀

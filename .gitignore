@@ -1,32 +1,9 @@
-# Dependencies
 node_modules/
-frontend/node_modules/
-
-# Build artifacts
 dist/
 build/
 *.log
-*.tmp
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment variables
-.env
-.env.local
-
-# OS files
 .DS_Store
-Thumbs.db
-
-# IDE
+.env
+coverage/
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Uploaded files
-uploads/
-scans/
