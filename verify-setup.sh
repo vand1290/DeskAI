@@ -54,11 +54,11 @@ echo ""
 
 # Check TypeScript compilation
 echo "Checking TypeScript compilation..."
-if npx tsc --noEmit 2>&1 | grep -q "error"; then
+if npx tsc --noEmit; then
+    echo "✓ TypeScript compiles successfully"
+else
     echo "✗ TypeScript compilation has errors"
     EXIT_CODE=1
-else
-    echo "✓ TypeScript compiles successfully"
 fi
 echo ""
 
