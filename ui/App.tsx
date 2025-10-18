@@ -1,138 +1,148 @@
 import React, { useState } from 'react';
-import { Dashboard } from './Dashboard';
-import { ConversationHistory } from './components/ConversationHistory';
-import { ScanUpload } from './components/ScanUpload';
-import { ScanSearch } from './components/ScanSearch';
+import RequestInput from './components/RequestInput';
+import ResponseDisplay from './components/ResponseDisplay';
+import SecretaryDashboard from './components/SecretaryDashboard';
+import WritingEditor from './components/WritingEditor';
+import DocumentProcessor from './components/DocumentProcessor';
+import FileManager from './components/FileManager';
+import OCRViewer from './components/OCRViewer';
+import HandwritingRecognizer from './components/HandwritingRecognizer';
 
-type View = 'dashboard' | 'history' | 'scan-upload' | 'scan-search';
+interface AgentResponse {
+  result: string;
+  route: string;
+  toolsUsed: string[];
+  deterministic: boolean;
+}
 
-export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+const App: React.FC = () => {
+  const [response, setResponse] = useState<AgentResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'agent' | 'secretary'>('agent');
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
+
+  // Available models (in production, this would come from backend)
+  const availableModels = ['qwen2.5:7b', 'llama2:7b', 'mistral:7b'];
+
+  const handleSubmit = async (query: string, model: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // In production, this would call the backend API via Tauri
+      // For now, simulate with deterministic response
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const mockResponse: AgentResponse = {
+        result: `[${model}] Processing: "${query}"\n\nThis is an offline deterministic response. In production, this would connect to your local model runner.`,
+        route: `model:${model}`,
+        toolsUsed: query.toLowerCase().includes('calculate') ? ['calculator'] : [],
+        deterministic: true
+      };
+
+      setResponse(mockResponse);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToolExecution = async (toolName: string, params: any): Promise<any> => {
+    // In production, this would call the backend via Tauri
+    // For now, return mock response
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, message: 'Tool executed (mock)' });
+      }, 500);
+    });
+  };
+
+  const renderSecretaryTool = () => {
+    switch (selectedTool) {
+      case 'writing':
+        return <WritingEditor onExecute={handleToolExecution} />;
+      case 'document_processor':
+        return <DocumentProcessor onExecute={handleToolExecution} />;
+      case 'file_manager':
+        return <FileManager onExecute={handleToolExecution} />;
+      case 'ocr':
+        return <OCRViewer onExecute={handleToolExecution} />;
+      case 'handwriting':
+        return <HandwritingRecognizer onExecute={handleToolExecution} />;
+      default:
+        return <SecretaryDashboard onToolSelect={setSelectedTool} />;
+    }
+  };
 
   return (
     <div className="app">
-      <nav className="app-nav">
-        <h1>DeskAI</h1>
-        <div className="nav-buttons">
-          <button
-            className={currentView === 'dashboard' ? 'active' : ''}
-            onClick={() => setCurrentView('dashboard')}
+      <header className="app-header">
+        <h1>🤖 DeskAI</h1>
+        <p className="subtitle">100% Offline Meta-Agent with Personal Secretary</p>
+        
+        <div className="view-switcher">
+          <button 
+            className={activeView === 'agent' ? 'active' : ''}
+            onClick={() => setActiveView('agent')}
           >
-            Dashboard
+            Agent
           </button>
-          <button
-            className={currentView === 'history' ? 'active' : ''}
-            onClick={() => setCurrentView('history')}
+          <button 
+            className={activeView === 'secretary' ? 'active' : ''}
+            onClick={() => setActiveView('secretary')}
           >
-            History
-          </button>
-          <button
-            className={currentView === 'scan-upload' ? 'active' : ''}
-            onClick={() => setCurrentView('scan-upload')}
-          >
-            Scan Document
-          </button>
-          <button
-            className={currentView === 'scan-search' ? 'active' : ''}
-            onClick={() => setCurrentView('scan-search')}
-          >
-            Search Scans
+            Secretary Tools
           </button>
         </div>
-      </nav>
+      </header>
 
       <main className="app-main">
-        {currentView === 'dashboard' && (
-          <Dashboard
-            conversationId={selectedConversationId}
-            onNewConversation={() => setSelectedConversationId(null)}
-          />
-        )}
-        {currentView === 'history' && (
-          <ConversationHistory
-            onSelectConversation={(id) => {
-              setSelectedConversationId(id);
-              setCurrentView('dashboard');
-            }}
-          />
-        )}
-        {currentView === 'scan-upload' && (
-          <ScanUpload
-            onDocumentProcessed={() => {
-              // Optionally switch to search view after upload
-              setCurrentView('scan-search');
-            }}
-          />
-        )}
-        {currentView === 'scan-search' && (
-          <ScanSearch />
+        {activeView === 'agent' ? (
+          <>
+            <RequestInput
+              onSubmit={handleSubmit}
+              availableModels={availableModels}
+              disabled={loading}
+            />
+
+            {error && (
+              <div className="error-message">
+                <strong>Error:</strong> {error}
+              </div>
+            )}
+
+            {loading && (
+              <div className="loading-message">
+                Processing request...
+              </div>
+            )}
+
+            {response && !loading && (
+              <ResponseDisplay response={response} />
+            )}
+          </>
+        ) : (
+          <div className="secretary-view">
+            {selectedTool && (
+              <button 
+                className="back-button"
+                onClick={() => setSelectedTool(null)}
+              >
+                ← Back to Dashboard
+              </button>
+            )}
+            {renderSecretaryTool()}
+          </div>
         )}
       </main>
 
-      <style>{`
-        * {
-          box-sizing: border-box;
-          margin: 0;
-          padding: 0;
-        }
-
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          background: #fafafa;
-        }
-
-        .app {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .app-nav {
-          background: #2c3e50;
-          color: white;
-          padding: 15px 30px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .app-nav h1 {
-          font-size: 24px;
-          margin: 0;
-        }
-
-        .nav-buttons {
-          display: flex;
-          gap: 10px;
-        }
-
-        .nav-buttons button {
-          padding: 8px 20px;
-          background: transparent;
-          color: white;
-          border: 1px solid rgba(255,255,255,0.3);
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-
-        .nav-buttons button:hover {
-          background: rgba(255,255,255,0.1);
-        }
-
-        .nav-buttons button.active {
-          background: #3498db;
-          border-color: #3498db;
-        }
-
-        .app-main {
-          flex: 1;
-          overflow: auto;
-        }
-      `}</style>
+      <footer className="app-footer">
+        <p>🔒 All processing happens locally on your device</p>
+      </footer>
     </div>
   );
 };
+
+export default App;

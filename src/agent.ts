@@ -1,227 +1,78 @@
-import { MemoryManager, Message } from './memory.js';
-import { LearningManager } from './learning.js';
+/**
+ * Core meta-agent logic for DeskAI
+ * 100% offline operation with deterministic behavior
+ */
 
-export interface AgentConfig {
-  memoryEnabled: boolean;
-  autoSaveInterval?: number;
-}
-
-export interface AgentResponse {
-  content: string;
-  metadata?: Record<string, unknown>;
-}
+import { ModelRegistry } from './models';
+import { ToolRegistry } from './tools';
+import { RequestRouter, AgentRequest, AgentResponse } from './router';
 
 /**
- * Agent handles user interactions and integrates with the memory system
- * Maintains conversation context and logs all interactions
+ * Main Agent class that orchestrates everything
  */
 export class Agent {
-  private memory: MemoryManager;
-  private learning?: LearningManager;
-  private currentConversationId: string | null = null;
-  private config: AgentConfig;
+  private modelRegistry: ModelRegistry;
+  private toolRegistry: ToolRegistry;
+  private router: RequestRouter;
 
-  constructor(memory: MemoryManager, config: AgentConfig = { memoryEnabled: true }, learning?: LearningManager) {
-    this.memory = memory;
-    this.config = config;
-    this.learning = learning;
+  constructor() {
+    this.modelRegistry = new ModelRegistry();
+    this.toolRegistry = new ToolRegistry();
+    this.router = new RequestRouter(this.modelRegistry, this.toolRegistry);
   }
 
   /**
-   * Start a new conversation
+   * Process a user request
+   * This is the main entry point for the agent
    */
-  async startConversation(title?: string, tags?: string[]): Promise<string> {
-    const conversationTitle = title || `Conversation ${new Date().toLocaleString()}`;
-    const conversation = await this.memory.createConversation(conversationTitle, tags);
-    this.currentConversationId = conversation.id;
-    
-    // Track action in learning manager
-    if (this.learning) {
-      await this.learning.trackAction('conversation_start', { tags });
-      if (tags && tags.length > 0) {
-        await this.learning.updateTopics(tags);
-      }
-    }
-    
-    return conversation.id;
-  }
-
-  /**
-   * Continue an existing conversation
-   */
-  async continueConversation(conversationId: string): Promise<boolean> {
-    const conversation = await this.memory.getConversation(conversationId);
-    if (!conversation) {
-      return false;
-    }
-    this.currentConversationId = conversationId;
-    
-    // Track action in learning manager
-    if (this.learning) {
-      await this.learning.trackAction('conversation_continue', { conversationId });
-      if (conversation.tags && conversation.tags.length > 0) {
-        await this.learning.updateTopics(conversation.tags);
-      }
-    }
-    
-    return true;
-  }
-
-  /**
-   * Process a user message and generate a response
-   */
-  async processMessage(userMessage: string): Promise<AgentResponse> {
-    // Ensure we have an active conversation only if memory is enabled
-    if (this.config.memoryEnabled && !this.currentConversationId) {
-      await this.startConversation();
+  async processRequest(request: AgentRequest): Promise<AgentResponse> {
+    // Validate request
+    if (!request.query || request.query.trim().length === 0) {
+      throw new Error('Query cannot be empty');
     }
 
-    // Log the user message if memory is enabled
-    if (this.config.memoryEnabled && this.currentConversationId) {
-      await this.memory.addMessage(this.currentConversationId, 'user', userMessage);
-    }
-
-    // Track message action in learning manager
-    if (this.learning) {
-      await this.learning.trackAction('message', { messageLength: userMessage.length });
-    }
-
-    // Generate response (this is a placeholder - in a real implementation,
-    // this would integrate with an AI model or rule-based system)
-    const response = await this.generateResponse(userMessage);
-
-    // Log the agent response if memory is enabled
-    if (this.config.memoryEnabled && this.currentConversationId) {
-      await this.memory.addMessage(this.currentConversationId, 'agent', response.content);
-    }
-
-    return response;
-  }
-
-  /**
-   * Generate a response based on user input
-   * This is a simple implementation - can be extended with AI models
-   */
-  private async generateResponse(userMessage: string): Promise<AgentResponse> {
-    const lowerMessage = userMessage.toLowerCase();
-
-    // Check for more specific patterns first before greetings
-    if (lowerMessage.includes('history') || lowerMessage.includes('past conversations')) {
-      // Track search action
-      if (this.learning) {
-        await this.learning.trackAction('search', { query: 'history' });
-      }
-      
-      const summaries = await this.memory.listConversations();
-      const recentConvs = summaries.slice(0, 5).map(s => 
-        `- ${s.title} (${s.messageCount} messages, ${new Date(s.updatedAt).toLocaleDateString()})`
-      ).join('\n');
-
+    // Route and process
+    try {
+      const response = await this.router.route(request);
+      return response;
+    } catch (error) {
       return {
-        content: `Here are your recent conversations:\n\n${recentConvs}`,
-        metadata: { type: 'history' }
+        result: `Error processing request: ${error}`,
+        route: 'error',
+        toolsUsed: [],
+        deterministic: true
       };
     }
-
-    if (lowerMessage.includes('analytics') || lowerMessage.includes('stats')) {
-      // Track analytics view action
-      if (this.learning) {
-        await this.learning.trackAction('view_analytics');
-      }
-      
-      const analytics = await this.memory.getAnalytics();
-      const topicsStr = analytics.frequentTopics
-        .map(t => `- ${t.topic} (${t.count} times)`)
-        .join('\n');
-
-      return {
-        content: `Here are your conversation analytics:\n\n` +
-                `Total conversations: ${analytics.totalConversations}\n` +
-                `Total messages: ${analytics.totalMessages}\n` +
-                `Average messages per conversation: ${analytics.averageMessagesPerConversation.toFixed(1)}\n\n` +
-                `Frequent topics:\n${topicsStr || 'No topics tagged yet'}`,
-        metadata: { type: 'analytics', data: analytics }
-      };
-    }
-
-    // Simple rule-based responses for demo
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      return {
-        content: 'Hello! How can I help you today?',
-        metadata: { type: 'greeting' }
-      };
-    }
-
-    if (lowerMessage.includes('help')) {
-      return {
-        content: 'I can help you with various tasks. You can:\n' +
-                '- Ask me questions\n' +
-                '- Browse past conversations\n' +
-                '- Search through conversation history\n' +
-                '- View analytics about your interactions\n\n' +
-                'What would you like to do?',
-        metadata: { type: 'help' }
-      };
-    }
-
-    // Default response with context awareness
-    const conversation = this.currentConversationId 
-      ? await this.memory.getConversation(this.currentConversationId)
-      : null;
-
-    const contextHint = conversation && conversation.messages.length > 2
-      ? ' I remember our previous discussion in this conversation.'
-      : '';
-
-    return {
-      content: `I understand you said: "${userMessage}".${contextHint} ` +
-              `This is a demonstration response. In a full implementation, ` +
-              `this would integrate with an AI model for intelligent responses.`,
-      metadata: { type: 'default' }
-    };
   }
 
   /**
-   * Get the current conversation ID
+   * Get available models
    */
-  getCurrentConversationId(): string | null {
-    return this.currentConversationId;
+  getAvailableModels(): string[] {
+    return this.modelRegistry.listModels();
   }
 
   /**
-   * Get conversation history for context
+   * Get available tools
    */
-  async getConversationHistory(): Promise<Message[]> {
-    if (!this.currentConversationId) {
-      return [];
-    }
-
-    const conversation = await this.memory.getConversation(this.currentConversationId);
-    return conversation ? conversation.messages : [];
+  getAvailableTools(): Array<{ name: string; description: string }> {
+    return this.toolRegistry.listTools();
   }
 
   /**
-   * Search for relevant context from past conversations
+   * Execute a specific tool directly
    */
-  async searchContext(query: string, limit: number = 5): Promise<Message[]> {
-    // Track search action
-    if (this.learning) {
-      await this.learning.trackAction('search', { query });
-    }
-    
-    const results = await this.memory.searchConversations(query);
-    const messages: Message[] = [];
+  async executeTool(toolName: string, params: any): Promise<any> {
+    return await this.toolRegistry.executeTool(toolName, params);
+  }
 
-    for (const result of results.slice(0, limit)) {
-      const conversation = await this.memory.getConversation(result.conversationId);
-      if (conversation) {
-        const message = conversation.messages.find(m => m.id === result.messageId);
-        if (message) {
-          messages.push(message);
-        }
-      }
-    }
-
-    return messages;
+  /**
+   * Get routing information for debugging
+   */
+  getRoutingInfo() {
+    return this.router.getRoutingInfo();
   }
 }
+
+// Export default instance
+export default new Agent();

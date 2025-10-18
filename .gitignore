@@ -1,9 +1,31 @@
+# Dependencies
 node_modules/
+ui/node_modules/
+
+# Build outputs
 dist/
-build/
-*.log
+out/
+ui/dist/
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Development
 .DS_Store
-.env
-coverage/
+*.log
+*.swp
+*.swo
+*~
+
+# IDE
 .vscode/
 .idea/
+*.iml
+
+# Testing
+coverage/
+
+# Misc
+.env
+.env.local

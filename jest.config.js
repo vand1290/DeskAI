@@ -1,13 +1,20 @@
 module.exports = {
+  preset: 'ts-jest',
   testEnvironment: 'node',
-  coverageDirectory: 'coverage',
+  roots: ['<rootDir>/src'],
+  testMatch: ['**/__tests__/**/*.test.ts'],
   collectCoverageFrom: [
-    'src/**/*.js',
-    '!src/frontend/**',
-    '!**/node_modules/**'
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/__tests__/**'
   ],
-  testMatch: [
-    '**/tests/**/*.test.js'
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  verbose: true,
+  transformIgnorePatterns: [
+    'node_modules/(?!(pdf-parse|pdfjs-dist)/)'
   ],
-  verbose: true
+  moduleNameMapper: {
+    '^pdf-parse$': '<rootDir>/src/__mocks__/pdf-parse.ts',
+    '^tesseract\\.js$': '<rootDir>/src/__mocks__/tesseract.js.ts'
+  }
 };

@@ -3,10 +3,15 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  clearScreen: false,
   server: {
-    port: 3000,
+    port: 1420,
+    strictPort: true,
   },
+  envPrefix: ['VITE_', 'TAURI_'],
   build: {
-    outDir: 'dist',
+    target: 'esnext',
+    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
+    sourcemap: !!process.env.TAURI_DEBUG,
   },
 });
