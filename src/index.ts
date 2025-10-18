@@ -10,7 +10,7 @@ export async function initializeDeskAI(dataDir: string = './out') {
   await memory.initialize();
 
   const agent = new Agent(memory, { memoryEnabled: true });
-  const router = new Router(memory, agent);
+  const router = new Router(memory, agent, dataDir);
 
   return {
     memory,
@@ -23,3 +23,4 @@ export { MemoryManager, Agent, Router };
 export * from './memory.js';
 export * from './agent.js';
 export * from './router.js';
+export * from './tools.js';

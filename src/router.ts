@@ -1,5 +1,13 @@
 import { MemoryManager } from './memory.js';
 import { Agent } from './agent.js';
+import { 
+  WritingTool, 
+  PhotoTool, 
+  DocumentTool, 
+  HandwritingTool, 
+  FileSorter,
+  SortCriteria 
+} from './tools.js';
 
 export interface RouterRequest {
   action: string;
@@ -19,10 +27,20 @@ export interface RouterResponse {
 export class Router {
   private memory: MemoryManager;
   private agent: Agent;
+  private writingTool: WritingTool;
+  private photoTool: PhotoTool;
+  private documentTool: DocumentTool;
+  private handwritingTool: HandwritingTool;
+  private fileSorter: FileSorter;
 
-  constructor(memory: MemoryManager, agent: Agent) {
+  constructor(memory: MemoryManager, agent: Agent, dataDir: string = './out') {
     this.memory = memory;
     this.agent = agent;
+    this.writingTool = new WritingTool(`${dataDir}/documents`);
+    this.photoTool = new PhotoTool(`${dataDir}/photos`);
+    this.documentTool = new DocumentTool(`${dataDir}/documents`);
+    this.handwritingTool = new HandwritingTool();
+    this.fileSorter = new FileSorter();
   }
 
   /**
@@ -60,6 +78,56 @@ export class Router {
         
         case 'filterByTags':
           return await this.handleFilterByTags(request.params);
+        
+        // Writing tool actions
+        case 'createDocument':
+          return await this.handleCreateDocument(request.params);
+        
+        case 'editDocument':
+          return await this.handleEditDocument(request.params);
+        
+        case 'readDocument':
+          return await this.handleReadDocument(request.params);
+        
+        case 'listDocuments':
+          return await this.handleListDocuments();
+        
+        case 'deleteDocument':
+          return await this.handleDeleteDocument(request.params);
+        
+        // Photo tool actions
+        case 'getImageInfo':
+          return await this.handleGetImageInfo(request.params);
+        
+        case 'extractTextFromImage':
+          return await this.handleExtractTextFromImage(request.params);
+        
+        case 'listImages':
+          return await this.handleListImages();
+        
+        // Document tool actions
+        case 'summarizeDocument':
+          return await this.handleSummarizeDocument(request.params);
+        
+        case 'extractData':
+          return await this.handleExtractData(request.params);
+        
+        case 'getDocumentInfo':
+          return await this.handleGetDocumentInfo(request.params);
+        
+        // Handwriting tool actions
+        case 'extractHandwriting':
+          return await this.handleExtractHandwriting(request.params);
+        
+        // File sorting actions
+        case 'sortFiles':
+          return await this.handleSortFiles(request.params);
+        
+        case 'organizeByDate':
+          return await this.handleOrganizeByDate(request.params);
+        
+        case 'organizeByType':
+          return await this.handleOrganizeByType(request.params);
         
         default:
           return {
@@ -193,5 +261,156 @@ export class Router {
       success: true,
       data: { conversations }
     };
+  }
+
+  // Writing tool handlers
+  private async handleCreateDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+    if (!params?.content || typeof params.content !== 'string') {
+      return { success: false, error: 'Content is required' };
+    }
+
+    const result = await this.writingTool.createDocument(
+      params.filename as string,
+      params.content as string
+    );
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleEditDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+    if (!params?.content || typeof params.content !== 'string') {
+      return { success: false, error: 'Content is required' };
+    }
+
+    const result = await this.writingTool.editDocument(
+      params.filename as string,
+      params.content as string
+    );
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleReadDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+
+    const result = await this.writingTool.readDocument(params.filename as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleListDocuments(): Promise<RouterResponse> {
+    const result = await this.writingTool.listDocuments();
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleDeleteDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+
+    const result = await this.writingTool.deleteDocument(params.filename as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  // Photo tool handlers
+  private async handleGetImageInfo(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+
+    const result = await this.photoTool.getImageInfo(params.filename as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleExtractTextFromImage(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+
+    const result = await this.photoTool.extractText(params.filename as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleListImages(): Promise<RouterResponse> {
+    const result = await this.photoTool.listImages();
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  // Document tool handlers
+  private async handleSummarizeDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+
+    const result = await this.documentTool.summarizeDocument(params.filename as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleExtractData(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+
+    const pattern = params?.pattern as string | undefined;
+    const result = await this.documentTool.extractData(params.filename as string, pattern);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleGetDocumentInfo(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+
+    const result = await this.documentTool.getDocumentInfo(params.filename as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  // Handwriting tool handlers
+  private async handleExtractHandwriting(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.filename || typeof params.filename !== 'string') {
+      return { success: false, error: 'Filename is required' };
+    }
+
+    const result = await this.handwritingTool.extractHandwriting(params.filename as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  // File sorting handlers
+  private async handleSortFiles(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.directory || typeof params.directory !== 'string') {
+      return { success: false, error: 'Directory is required' };
+    }
+    if (!params?.criteria || typeof params.criteria !== 'object') {
+      return { success: false, error: 'Sort criteria is required' };
+    }
+
+    const result = await this.fileSorter.sortFiles(
+      params.directory as string,
+      params.criteria as SortCriteria
+    );
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleOrganizeByDate(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.directory || typeof params.directory !== 'string') {
+      return { success: false, error: 'Directory is required' };
+    }
+
+    const result = await this.fileSorter.organizeByDate(params.directory as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  }
+
+  private async handleOrganizeByType(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.directory || typeof params.directory !== 'string') {
+      return { success: false, error: 'Directory is required' };
+    }
+
+    const result = await this.fileSorter.organizeByType(params.directory as string);
+    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
   }
 }
