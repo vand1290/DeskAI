@@ -97,8 +97,8 @@ export class Scanner {
 
     // Extract dates (various formats)
     const datePatterns = [
-      /\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b/g, // MM/DD/YYYY, DD-MM-YYYY, etc.
-      /\b\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}\b/g,   // YYYY-MM-DD
+      /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/g, // MM/DD/YYYY, DD-MM-YYYY, etc.
+      /\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b/g,   // YYYY-MM-DD
       /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/gi, // Month DD, YYYY
       /\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b/gi  // DD Month YYYY
     ];

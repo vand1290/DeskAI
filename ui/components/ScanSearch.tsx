@@ -63,7 +63,7 @@ export const ScanSearch: React.FC<ScanSearchProps> = ({ onViewDocument }) => {
         const data = await response.json();
         
         // Get full documents for the search results
-        const resultDocIds = data.results.map((r: any) => r.documentId);
+        const resultDocIds = data.results.map((r: { documentId: string }) => r.documentId);
         const matchedDocs = documents.filter(doc => resultDocIds.includes(doc.id));
         setFilteredDocuments(matchedDocs);
       }
