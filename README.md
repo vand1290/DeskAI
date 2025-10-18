@@ -16,6 +16,14 @@ Your professional AI helpdesk with persistent memory - 100% offline and secure.
 - **Trend detection** - Understand your interaction patterns over time
 - **Privacy-focused** - All analytics computed locally, never sent anywhere
 
+### 🔧 Secretary Tools (NEW)
+- **Writing Tool** - Create, edit, and manage text documents offline
+- **Photo Tool** - Preview images and extract text via OCR (stub for Tesseract integration)
+- **Document Tool** - Summarize documents and extract structured data (emails, dates, etc.)
+- **File Sorting** - Organize files by date, name, size, or type
+- **Handwriting Recognition** - Stub for offline HTR integration (TrOCR-ready)
+- **100% offline** - All processing happens locally on your machine
+
 ### 🔒 Security & Privacy
 - **100% offline operation** - No network calls, no cloud storage
 - **Local-only storage** - Data stored in `out/conversations.json`
@@ -62,6 +70,11 @@ npm test
 
 # Lint code
 npm run lint
+
+# Run examples
+npm run example:basic      # Basic usage demo
+npm run example:router     # Router API demo
+npm run example:secretary  # Secretary tools demo (NEW)
 ```
 
 ## Project Structure
@@ -72,16 +85,20 @@ DeskAI/
 │   ├── memory.ts          # Core memory manager
 │   ├── agent.ts           # AI agent logic
 │   ├── router.ts          # Request routing
+│   ├── tools.ts           # Secretary tools (NEW)
 │   └── index.ts           # Main entry point
 ├── ui/                    # Frontend React code
 │   ├── components/        # React components
-│   │   └── ConversationHistory.tsx
+│   │   ├── ConversationHistory.tsx
+│   │   └── ToolsPanel.tsx        # Secretary tools UI (NEW)
 │   ├── App.tsx            # Main app component
 │   ├── Dashboard.tsx      # Chat dashboard
 │   ├── main.tsx           # React entry point
 │   └── index.html         # HTML template
 ├── out/                   # Local data storage
-│   └── conversations.json # Conversation database
+│   ├── conversations.json # Conversation database
+│   ├── documents/         # User documents (NEW)
+│   └── photos/            # User photos (NEW)
 ├── dist/                  # Compiled backend code
 └── dist-ui/               # Compiled frontend code
 ```
@@ -108,12 +125,16 @@ DeskAI/
 - **Export**: Use the export function to download all your data
 - **Tags**: Add tags to conversations for better organization
 
-### Viewing Analytics
+### Using Secretary Tools
 
-1. Click "Show Analytics" in the Dashboard
-2. View statistics about your usage
-3. Explore frequent topics and patterns
-4. Track conversations over time
+1. Click the "Tools" tab in the navigation
+2. Select a tool category:
+   - **Writing Tool**: Create and edit text documents
+   - **Photo Tool**: View images and extract text (OCR stub)
+   - **Document Tool**: Summarize and extract data from documents
+   - **File Sorting**: Organize files by various criteria
+3. Follow the on-screen instructions for each tool
+4. All operations are performed locally on your machine
 
 ## Memory System Architecture
 
@@ -161,6 +182,11 @@ Conversations are stored as JSON in `out/conversations.json`:
    - Search and filter functionality
    - Conversation detail view
 
+5. **ToolsPanel** (`ui/components/ToolsPanel.tsx`) _(NEW)_
+   - Secretary tools interface
+   - Tabbed navigation between tools
+   - File management and preview
+
 ## Privacy & Security
 
 DeskAI is built with privacy as a core principle:
@@ -197,10 +223,12 @@ Your conversations are stored in `out/conversations.json`. Include this file in 
 
 Planned features:
 - [ ] Advanced semantic search with local embeddings
-- [ ] Conversation summarization
-- [ ] Multi-modal support (images, documents)
+- [ ] Full OCR integration with Tesseract
+- [ ] Handwriting recognition with TrOCR/HTR
+- [ ] PDF document support
+- [ ] LLM integration for document summarization
+- [ ] Multi-modal support (more document formats)
 - [ ] Enhanced context extraction
-- [ ] Learning from file content
 - [ ] Richer analytics dashboards
 - [ ] Optional encryption at rest
 - [ ] Import/export in multiple formats
