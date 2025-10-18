@@ -1,13 +1,6 @@
 import { MemoryManager } from './memory.js';
 import { Agent } from './agent.js';
-import { 
-  WritingTool, 
-  PhotoTool, 
-  DocumentTool, 
-  HandwritingTool, 
-  FileSorter,
-  SortCriteria 
-} from './tools.js';
+import { Scanner } from './scanner.js';
 
 export interface RouterRequest {
   action: string;
@@ -22,25 +15,17 @@ export interface RouterResponse {
 
 /**
  * Router handles routing of requests to appropriate handlers
- * Provides a simple API for interacting with the memory system and agent
+ * Provides a simple API for interacting with the memory system, agent, and task chains
  */
 export class Router {
   private memory: MemoryManager;
   private agent: Agent;
-  private writingTool: WritingTool;
-  private photoTool: PhotoTool;
-  private documentTool: DocumentTool;
-  private handwritingTool: HandwritingTool;
-  private fileSorter: FileSorter;
+  private scanner: Scanner;
 
-  constructor(memory: MemoryManager, agent: Agent, dataDir: string = './out') {
+  constructor(memory: MemoryManager, agent: Agent, scanner: Scanner) {
     this.memory = memory;
     this.agent = agent;
-    this.writingTool = new WritingTool(`${dataDir}/documents`);
-    this.photoTool = new PhotoTool(`${dataDir}/photos`);
-    this.documentTool = new DocumentTool(`${dataDir}/documents`);
-    this.handwritingTool = new HandwritingTool();
-    this.fileSorter = new FileSorter();
+    this.scanner = scanner;
   }
 
   /**
@@ -79,55 +64,26 @@ export class Router {
         case 'filterByTags':
           return await this.handleFilterByTags(request.params);
         
-        // Writing tool actions
-        case 'createDocument':
-          return await this.handleCreateDocument(request.params);
+        case 'processDocument':
+          return await this.handleProcessDocument(request.params);
         
-        case 'editDocument':
-          return await this.handleEditDocument(request.params);
+        case 'listScannedDocuments':
+          return await this.handleListScannedDocuments();
         
-        case 'readDocument':
-          return await this.handleReadDocument(request.params);
+        case 'getScannedDocument':
+          return await this.handleGetScannedDocument(request.params);
         
-        case 'listDocuments':
-          return await this.handleListDocuments();
+        case 'searchScannedDocuments':
+          return await this.handleSearchScannedDocuments(request.params);
         
-        case 'deleteDocument':
-          return await this.handleDeleteDocument(request.params);
+        case 'deleteScannedDocument':
+          return await this.handleDeleteScannedDocument(request.params);
         
-        // Photo tool actions
-        case 'getImageInfo':
-          return await this.handleGetImageInfo(request.params);
+        case 'linkDocumentToConversation':
+          return await this.handleLinkDocumentToConversation(request.params);
         
-        case 'extractTextFromImage':
-          return await this.handleExtractTextFromImage(request.params);
-        
-        case 'listImages':
-          return await this.handleListImages();
-        
-        // Document tool actions
-        case 'summarizeDocument':
-          return await this.handleSummarizeDocument(request.params);
-        
-        case 'extractData':
-          return await this.handleExtractData(request.params);
-        
-        case 'getDocumentInfo':
-          return await this.handleGetDocumentInfo(request.params);
-        
-        // Handwriting tool actions
-        case 'extractHandwriting':
-          return await this.handleExtractHandwriting(request.params);
-        
-        // File sorting actions
-        case 'sortFiles':
-          return await this.handleSortFiles(request.params);
-        
-        case 'organizeByDate':
-          return await this.handleOrganizeByDate(request.params);
-        
-        case 'organizeByType':
-          return await this.handleOrganizeByType(request.params);
+        case 'suggestRelatedDocuments':
+          return await this.handleSuggestRelatedDocuments(request.params);
         
         default:
           return {
@@ -159,258 +115,391 @@ export class Router {
     };
   }
 
-  private async handleStartConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
-    const title = params?.title as string | undefined;
+import { Message, RouteDecision, Agent } from './types.js';
+import { allAgents } from './agents.js';
+
+/**
+ * Deterministic routing logic based on keywords
+ */
+export function routeRequest(messages: Message[]): RouteDecision {
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage || lastMessage.role !== 'user') {
+    return {
+      agentName: 'general',
+      reasoning: 'Default to general agent for non-user messages'
+    };
+  }
+  
+  const content = lastMessage.content.toLowerCase();
+  
+  // Code-related keywords
+  const codeKeywords = ['code', 'program', 'function', 'class', 'bug', 'debug', 'javascript', 'python', 'typescript', 'compile'];
+  if (codeKeywords.some(keyword => content.includes(keyword))) {
+    return {
+      agentName: 'code',
+      reasoning: 'Detected code-related keywords in request'
+    };
+  }
+  
+  // Data-related keywords
+  const dataKeywords = ['data', 'analyze', 'statistics', 'chart', 'graph', 'csv', 'excel', 'visualization'];
+  if (dataKeywords.some(keyword => content.includes(keyword))) {
+    return {
+      agentName: 'data',
+      reasoning: 'Detected data analysis keywords in request'
+    };
+  }
+  
+  // Default to general agent
+  return {
+    agentName: 'general',
+    reasoning: 'No specific domain detected, using general agent'
+  };
+}
+
+/**
+ * Find an agent by name
+ */
+export function getAgent(name: string): Agent | undefined {
+  return allAgents.find(agent => agent.name === name);
+}
+
+/**
+ * Main meta-agent that routes and executes requests
+ */
+export async function handleRequest(messages: Message[]): Promise<{
+  response: string;
+  agent: string;
+  reasoning: string;
+}> {
+  const decision = routeRequest(messages);
+  const agent = getAgent(decision.agentName);
+  
+  if (!agent) {
+    throw new Error(`Agent '${decision.agentName}' not found`);
+  }
+
+  // Task chain handlers
+  private async handleCreateChain(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.name || typeof params.name !== 'string') {
+      return { success: false, error: 'Chain name is required' };
+    }
+
+    const name = params.name as string;
+    const description = params.description as string | undefined;
+    const tags = params.tags as string[] | undefined;
+
+    const chain = await this.taskChainManager.createChain(name, description, tags);
+    return {
+      success: true,
+      data: { chain }
+    };
+  }
+
+  private async handleGetChain(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.chainId || typeof params.chainId !== 'string') {
+      return { success: false, error: 'Chain ID is required' };
+    }
+
+    const chain = await this.taskChainManager.getChain(params.chainId as string);
+    if (!chain) {
+      return { success: false, error: 'Chain not found' };
+    }
+
+    return {
+      success: true,
+      data: { chain }
+    };
+  }
+
+  private async handleListChains(params?: Record<string, unknown>): Promise<RouterResponse> {
     const tags = params?.tags as string[] | undefined;
+    const chains = await this.taskChainManager.listChains(tags);
     
-    const conversationId = await this.agent.startConversation(title, tags);
     return {
       success: true,
-      data: { conversationId }
+      data: { chains }
     };
   }
 
-  private async handleContinueConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.conversationId || typeof params.conversationId !== 'string') {
-      return { success: false, error: 'Conversation ID is required' };
+  private async handleDeleteChain(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.chainId || typeof params.chainId !== 'string') {
+      return { success: false, error: 'Chain ID is required' };
     }
 
-    const success = await this.agent.continueConversation(params.conversationId as string);
-    if (!success) {
-      return { success: false, error: 'Conversation not found' };
-    }
-
-    const history = await this.agent.getConversationHistory();
-    return {
-      success: true,
-      data: { history }
-    };
-  }
-
-  private async handleListConversations(): Promise<RouterResponse> {
-    const conversations = await this.memory.listConversations();
-    return {
-      success: true,
-      data: { conversations }
-    };
-  }
-
-  private async handleGetConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.conversationId || typeof params.conversationId !== 'string') {
-      return { success: false, error: 'Conversation ID is required' };
-    }
-
-    const conversation = await this.memory.getConversation(params.conversationId as string);
-    if (!conversation) {
-      return { success: false, error: 'Conversation not found' };
-    }
-
-    return {
-      success: true,
-      data: { conversation }
-    };
-  }
-
-  private async handleSearchConversations(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.query || typeof params.query !== 'string') {
-      return { success: false, error: 'Query is required' };
-    }
-
-    const results = await this.memory.searchConversations(params.query as string);
-    return {
-      success: true,
-      data: { results }
-    };
-  }
-
-  private async handleDeleteConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.conversationId || typeof params.conversationId !== 'string') {
-      return { success: false, error: 'Conversation ID is required' };
-    }
-
-    const deleted = await this.memory.deleteConversation(params.conversationId as string);
+    const deleted = await this.taskChainManager.deleteChain(params.chainId as string);
     return {
       success: true,
       data: { deleted }
     };
   }
 
-  private async handleExportConversations(): Promise<RouterResponse> {
-    const conversations = await this.memory.exportConversations();
+  private async handleAddStep(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.chainId || typeof params.chainId !== 'string') {
+      return { success: false, error: 'Chain ID is required' };
+    }
+    if (!params?.type || typeof params.type !== 'string') {
+      return { success: false, error: 'Step type is required' };
+    }
+    if (!params?.name || typeof params.name !== 'string') {
+      return { success: false, error: 'Step name is required' };
+    }
+
+    const chainId = params.chainId as string;
+    const type = params.type as TaskStep['type'];
+    const name = params.name as string;
+    const config = params.config as Record<string, unknown> | undefined;
+
+    const step = await this.taskChainManager.addStep(chainId, type, name, config);
     return {
       success: true,
-      data: { conversations }
+      data: { step }
     };
   }
 
-  private async handleGetAnalytics(): Promise<RouterResponse> {
-    const analytics = await this.memory.getAnalytics();
+  private async handleUpdateStep(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.chainId || typeof params.chainId !== 'string') {
+      return { success: false, error: 'Chain ID is required' };
+    }
+    if (!params?.stepId || typeof params.stepId !== 'string') {
+      return { success: false, error: 'Step ID is required' };
+    }
+    if (!params?.updates || typeof params.updates !== 'object') {
+      return { success: false, error: 'Updates object is required' };
+    }
+
+    const chainId = params.chainId as string;
+    const stepId = params.stepId as string;
+    const updates = params.updates as Record<string, unknown>;
+
+    const step = await this.taskChainManager.updateStep(chainId, stepId, updates);
     return {
       success: true,
-      data: { analytics }
+      data: { step }
     };
   }
 
-  private async handleFilterByTags(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.tags || !Array.isArray(params.tags)) {
-      return { success: false, error: 'Tags array is required' };
+  private async handleRemoveStep(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.chainId || typeof params.chainId !== 'string') {
+      return { success: false, error: 'Chain ID is required' };
+    }
+    if (!params?.stepId || typeof params.stepId !== 'string') {
+      return { success: false, error: 'Step ID is required' };
     }
 
-    const conversations = await this.memory.filterByTags(params.tags as string[]);
+    const removed = await this.taskChainManager.removeStep(
+      params.chainId as string,
+      params.stepId as string
+    );
     return {
       success: true,
-      data: { conversations }
+      data: { removed }
     };
   }
 
-  // Writing tool handlers
-  private async handleCreateDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
+  private async handleReorderSteps(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.chainId || typeof params.chainId !== 'string') {
+      return { success: false, error: 'Chain ID is required' };
     }
-    if (!params?.content || typeof params.content !== 'string') {
-      return { success: false, error: 'Content is required' };
+    if (!params?.stepIds || !Array.isArray(params.stepIds)) {
+      return { success: false, error: 'Step IDs array is required' };
     }
 
-    const result = await this.writingTool.createDocument(
+    const reordered = await this.taskChainManager.reorderSteps(
+      params.chainId as string,
+      params.stepIds as string[]
+    );
+    return {
+      success: true,
+      data: { reordered }
+    };
+  }
+
+  private async handleExecuteChain(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.chainId || typeof params.chainId !== 'string') {
+      return { success: false, error: 'Chain ID is required' };
+    }
+
+    const chainId = params.chainId as string;
+    const initialInput = params.initialInput;
+
+    const result = await this.taskChainManager.executeChain(chainId, initialInput);
+    return {
+      success: true,
+      data: { result }
+    };
+  }
+
+  private async handleGetAvailableTools(): Promise<RouterResponse> {
+    const tools = this.taskChainManager.getAvailableTools();
+    return {
+      success: true,
+      data: { tools }
+    };
+  }
+
+  // Learning mode handlers
+  private async handleGetLearningEnabled(): Promise<RouterResponse> {
+    const enabled = this.learning.isEnabled();
+    return {
+      success: true,
+      data: { enabled }
+    };
+  }
+
+  private async handleSetLearningEnabled(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (params?.enabled === undefined || typeof params.enabled !== 'boolean') {
+      return { success: false, error: 'Boolean enabled parameter is required' };
+    }
+
+    await this.learning.setEnabled(params.enabled as boolean);
+    return {
+      success: true,
+      data: { enabled: params.enabled }
+    };
+  }
+
+  private async handleGetSuggestions(params?: Record<string, unknown>): Promise<RouterResponse> {
+    const limit = (params?.limit as number) || 5;
+    const suggestions = await this.learning.generateSuggestions(limit);
+    return {
+      success: true,
+      data: { suggestions }
+    };
+  }
+
+  private async handleGetLearningStatistics(): Promise<RouterResponse> {
+    const statistics = await this.learning.getStatistics();
+    return {
+      success: true,
+      data: { statistics }
+    };
+  }
+
+  private async handleGetLearningData(): Promise<RouterResponse> {
+    const data = await this.learning.getLearningData();
+    return {
+      success: true,
+      data
+    };
+  }
+
+  private async handleResetLearning(): Promise<RouterResponse> {
+    await this.learning.reset();
+    return {
+      success: true,
+      data: { message: 'Learning data has been reset' }
+    };
+  }
+
+  private async handleProcessDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.imageData || !params?.filename) {
+      return { success: false, error: 'Image data and filename are required' };
+    }
+
+    const document = await this.scanner.processDocument(
+      params.imageData as string,
       params.filename as string,
-      params.content as string
+      params.fileType as string | undefined,
+      params.fileSize as number | undefined
     );
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+
+    // Save to memory
+    await this.memory.saveScannedDocument(document);
+
+    return {
+      success: true,
+      data: { document }
+    };
   }
 
-  private async handleEditDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-    if (!params?.content || typeof params.content !== 'string') {
-      return { success: false, error: 'Content is required' };
+  private async handleListScannedDocuments(): Promise<RouterResponse> {
+    const documents = await this.memory.listScannedDocuments();
+    return {
+      success: true,
+      data: { documents }
+    };
+  }
+
+  private async handleGetScannedDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.documentId || typeof params.documentId !== 'string') {
+      return { success: false, error: 'Document ID is required' };
     }
 
-    const result = await this.writingTool.editDocument(
-      params.filename as string,
-      params.content as string
+    const document = await this.memory.getScannedDocument(params.documentId as string);
+    if (!document) {
+      return { success: false, error: 'Document not found' };
+    }
+
+    return {
+      success: true,
+      data: { document }
+    };
+  }
+
+  private async handleSearchScannedDocuments(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.query || typeof params.query !== 'string') {
+      return { success: false, error: 'Query is required' };
+    }
+
+    const allDocuments = await this.memory.listScannedDocuments();
+    const results = this.scanner.searchDocuments(
+      allDocuments,
+      params.query as string,
+      params.filterType as 'name' | 'date' | 'number' | 'keyword' | undefined
     );
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+
+    return {
+      success: true,
+      data: { results }
+    };
   }
 
-  private async handleReadDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
+  private async handleDeleteScannedDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.documentId || typeof params.documentId !== 'string') {
+      return { success: false, error: 'Document ID is required' };
     }
 
-    const result = await this.writingTool.readDocument(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+    const deleted = await this.memory.deleteScannedDocument(params.documentId as string);
+
+    return {
+      success: true,
+      data: { deleted }
+    };
   }
 
-  private async handleListDocuments(): Promise<RouterResponse> {
-    const result = await this.writingTool.listDocuments();
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleDeleteDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
+  private async handleLinkDocumentToConversation(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.documentId || !params?.conversationId) {
+      return { success: false, error: 'Document ID and Conversation ID are required' };
     }
 
-    const result = await this.writingTool.deleteDocument(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  // Photo tool handlers
-  private async handleGetImageInfo(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.photoTool.getImageInfo(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleExtractTextFromImage(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.photoTool.extractText(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleListImages(): Promise<RouterResponse> {
-    const result = await this.photoTool.listImages();
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  // Document tool handlers
-  private async handleSummarizeDocument(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.documentTool.summarizeDocument(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleExtractData(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const pattern = params?.pattern as string | undefined;
-    const result = await this.documentTool.extractData(params.filename as string, pattern);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  private async handleGetDocumentInfo(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.documentTool.getDocumentInfo(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  // Handwriting tool handlers
-  private async handleExtractHandwriting(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.filename || typeof params.filename !== 'string') {
-      return { success: false, error: 'Filename is required' };
-    }
-
-    const result = await this.handwritingTool.extractHandwriting(params.filename as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
-
-  // File sorting handlers
-  private async handleSortFiles(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.directory || typeof params.directory !== 'string') {
-      return { success: false, error: 'Directory is required' };
-    }
-    if (!params?.criteria || typeof params.criteria !== 'object') {
-      return { success: false, error: 'Sort criteria is required' };
-    }
-
-    const result = await this.fileSorter.sortFiles(
-      params.directory as string,
-      params.criteria as SortCriteria
+    const linked = await this.memory.linkScannedDocumentToConversation(
+      params.documentId as string,
+      params.conversationId as string
     );
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+
+    return {
+      success: true,
+      data: { linked }
+    };
   }
 
-  private async handleOrganizeByDate(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.directory || typeof params.directory !== 'string') {
-      return { success: false, error: 'Directory is required' };
+  private async handleSuggestRelatedDocuments(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (!params?.documentId || typeof params.documentId !== 'string') {
+      return { success: false, error: 'Document ID is required' };
     }
 
-    const result = await this.fileSorter.organizeByDate(params.directory as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
-  }
+    const limit = (params.limit as number) || 5;
+    const allDocuments = await this.memory.listScannedDocuments();
+    const relatedDocuments = this.scanner.suggestRelatedDocuments(
+      allDocuments,
+      params.documentId as string,
+      limit
+    );
 
-  private async handleOrganizeByType(params?: Record<string, unknown>): Promise<RouterResponse> {
-    if (!params?.directory || typeof params.directory !== 'string') {
-      return { success: false, error: 'Directory is required' };
-    }
-
-    const result = await this.fileSorter.organizeByType(params.directory as string);
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+    return {
+      success: true,
+      data: { relatedDocuments }
+    };
   }
 }

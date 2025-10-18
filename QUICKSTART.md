@@ -19,7 +19,7 @@ npm install
 # Run all tests to verify everything works
 npm test
 
-# All 51 tests should pass ✓
+# All 91 tests should pass ✓
 ```
 
 ## Try the Examples
@@ -44,15 +44,30 @@ npm run example:router
 
 This demonstrates the programmatic API for integrating with other systems.
 
-## View the Data
-
-After running the examples, check out the stored conversations:
-
+### Workflow Automation Example
 ```bash
-cat examples/data/conversations.json
+npm run example:workflow
 ```
 
-You'll see all your conversations stored in human-readable JSON format!
+This demonstrates the new task chaining feature:
+- Creates a workflow with multiple steps
+- Executes scan → OCR → summarize → save pipeline
+- Shows step-by-step execution results
+- Saves workflow to `out/task-chains.json`
+
+## View the Data
+
+After running the examples, check out the stored data:
+
+```bash
+# View conversations
+cat examples/data/conversations.json
+
+# View workflows
+cat out/task-chains.json
+```
+
+You'll see all your data stored in human-readable JSON format!
 
 ## Build the Project
 
@@ -82,26 +97,32 @@ DeskAI/
 │   ├── memory.ts          # Core memory management
 │   ├── agent.ts           # Conversation agent
 │   ├── router.ts          # API routing
+│   ├── taskChain.ts       # Workflow engine
 │   └── __tests__/         # Unit tests
 │
 ├── ui/                    # Frontend React code
 │   ├── components/        # React components
 │   ├── App.tsx            # Main app
-│   └── Dashboard.tsx      # Chat interface
+│   ├── Dashboard.tsx      # Chat interface
+│   └── Workflows.tsx      # Workflow management
 │
 ├── examples/              # Usage examples
 │   ├── basic-usage.ts
 │   ├── router-api.ts
+│   ├── workflow-demo.ts   # Workflow example
 │   └── data/             # Example data storage
 │
 └── out/                   # Your conversation data
-    └── conversations.json
+    ├── conversations.json # Conversations
+    └── task-chains.json   # Workflows
 ```
 
 ## Key Features
 
 ✅ **Persistent Memory** - All conversations automatically saved locally  
-✅ **Search & Filter** - Find past conversations quickly  
+✅ **Task Chaining** - Create workflows to automate sequences of actions  
+✅ **Visual Workflow Builder** - Intuitive UI for workflow creation  
+✅ **Search & Filter** - Find past conversations and workflows quickly  
 ✅ **Analytics** - Track usage patterns and frequent topics  
 ✅ **100% Offline** - No network calls, completely private  
 ✅ **Export/Delete** - Full control over your data  
@@ -113,7 +134,7 @@ DeskAI/
 ```typescript
 import { initializeDeskAI } from './dist/index.js';
 
-const { memory, agent, router } = await initializeDeskAI('./my-data');
+const { memory, agent, taskChainManager, router } = await initializeDeskAI('./my-data');
 ```
 
 ### Start a Conversation
@@ -131,6 +152,25 @@ console.log(response.content);
 ```typescript
 const conversations = await memory.listConversations();
 const analytics = await memory.getAnalytics();
+```
+
+### Create and Execute Workflows
+```typescript
+// Create a workflow
+const workflow = await taskChainManager.createChain(
+  'My Workflow',
+  'Description of what it does',
+  ['tag1', 'tag2']
+);
+
+// Add steps
+await taskChainManager.addStep(workflow.id, 'scan', 'Scan Document');
+await taskChainManager.addStep(workflow.id, 'ocr', 'Extract Text');
+await taskChainManager.addStep(workflow.id, 'save', 'Save Result');
+
+// Execute
+const result = await taskChainManager.executeChain(workflow.id, inputData);
+console.log(result.success ? 'Success!' : 'Failed');
 ```
 
 ## Next Steps
@@ -151,11 +191,12 @@ const analytics = await memory.getAnalytics();
 ## Common Commands
 
 ```bash
-npm test              # Run all tests
-npm run lint          # Check code quality
-npm run build         # Build everything
-npm run example:basic # Run basic example
-npm run example:router # Run router example
+npm test                # Run all tests
+npm run lint            # Check code quality
+npm run build           # Build everything
+npm run example:basic   # Run basic example
+npm run example:router  # Run router example
+npm run example:workflow # Run workflow example
 ```
 
 Happy coding! 🚀

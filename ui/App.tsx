@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { ConversationHistory } from './components/ConversationHistory';
-import { ToolsPanel } from './components/ToolsPanel';
+import { ScanUpload } from './components/ScanUpload';
+import { ScanSearch } from './components/ScanSearch';
 
-type View = 'dashboard' | 'history' | 'tools';
+type View = 'dashboard' | 'history' | 'scan-upload' | 'scan-search';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -27,10 +28,16 @@ export const App: React.FC = () => {
             History
           </button>
           <button
-            className={currentView === 'tools' ? 'active' : ''}
-            onClick={() => setCurrentView('tools')}
+            className={currentView === 'scan-upload' ? 'active' : ''}
+            onClick={() => setCurrentView('scan-upload')}
           >
-            Tools
+            Scan Document
+          </button>
+          <button
+            className={currentView === 'scan-search' ? 'active' : ''}
+            onClick={() => setCurrentView('scan-search')}
+          >
+            Search Scans
           </button>
         </div>
       </nav>
@@ -50,8 +57,16 @@ export const App: React.FC = () => {
             }}
           />
         )}
-        {currentView === 'tools' && (
-          <ToolsPanel />
+        {currentView === 'scan-upload' && (
+          <ScanUpload
+            onDocumentProcessed={() => {
+              // Optionally switch to search view after upload
+              setCurrentView('scan-search');
+            }}
+          />
+        )}
+        {currentView === 'scan-search' && (
+          <ScanSearch />
         )}
       </main>
 

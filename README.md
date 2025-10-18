@@ -14,6 +14,7 @@ Your professional helpdesk with intelligent scan-to-search capabilities
 
 ### Installation
 
+1. Clone the repository:
 ```bash
 # Install dependencies
 npm install

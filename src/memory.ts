@@ -16,6 +16,42 @@ export interface Conversation {
   updatedAt: number;
   tags?: string[];
   metadata?: Record<string, unknown>;
+  linkedScans?: string[]; // IDs of linked scan documents
+}
+
+export interface ScanDocument {
+  id: string;
+  filename: string;
+  extractedText: string;
+  metadata: {
+    names: string[];
+    dates: string[];
+    totals: string[];
+    keywords: string[];
+  };
+  uploadedAt: number;
+  filePath: string;
+  linkedConversations?: string[]; // IDs of related conversations
+}
+
+export interface ScannedDocument {
+  id: string;
+  filename: string;
+  content: string;
+  extractedData: {
+    names?: string[];
+    dates?: string[];
+    numbers?: string[];
+    keywords?: string[];
+  };
+  metadata: {
+    uploadedAt: number;
+    fileSize?: number;
+    fileType?: string;
+    ocrConfidence?: number;
+  };
+  relatedConversationIds?: string[];
+  tags?: string[];
 }
 
 export interface ConversationSummary {
@@ -35,6 +71,17 @@ export interface SearchResult {
   score: number;
 }
 
+export interface ScanSearchResult {
+  documentId: string;
+  filename: string;
+  matches: Array<{
+    type: 'name' | 'date' | 'total' | 'keyword' | 'text';
+    value: string;
+    context: string;
+  }>;
+  score: number;
+}
+
 export interface Analytics {
   totalConversations: number;
   totalMessages: number;
@@ -45,22 +92,26 @@ export interface Analytics {
 }
 
 /**
- * MemoryManager handles persistent storage and retrieval of conversations
+ * MemoryManager handles persistent storage and retrieval of conversations and scans
  * All data is stored locally in the out/ directory as JSON
  * No network calls are made - operates completely offline
  */
 export class MemoryManager {
   private conversationsPath: string;
+  private scannedDocsPath: string;
   private conversations: Map<string, Conversation>;
+  private scannedDocuments: Map<string, ScannedDocument>;
   private initialized: boolean = false;
 
   constructor(dataDir: string = './out') {
     this.conversationsPath = path.join(dataDir, 'conversations.json');
+    this.scannedDocsPath = path.join(dataDir, 'scanned-documents.json');
     this.conversations = new Map();
+    this.scannedDocuments = new Map();
   }
 
   /**
-   * Initialize the memory manager by loading existing conversations
+   * Initialize the memory manager by loading existing conversations and scans
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -82,6 +133,16 @@ export class MemoryManager {
         }
       }
 
+      // Load existing scanned documents if the file exists
+      if (fs.existsSync(this.scannedDocsPath)) {
+        const data = fs.readFileSync(this.scannedDocsPath, 'utf-8');
+        const docsArray: ScannedDocument[] = JSON.parse(data);
+        
+        for (const doc of docsArray) {
+          this.scannedDocuments.set(doc.id, doc);
+        }
+      }
+
       this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize memory manager:', error);
@@ -99,6 +160,20 @@ export class MemoryManager {
       fs.writeFileSync(this.conversationsPath, data, 'utf-8');
     } catch (error) {
       console.error('Failed to save conversations:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save scanned documents to disk
+   */
+  private async saveScannedDocuments(): Promise<void> {
+    try {
+      const docsArray = Array.from(this.scannedDocuments.values());
+      const data = JSON.stringify(docsArray, null, 2);
+      fs.writeFileSync(this.scannedDocsPath, data, 'utf-8');
+    } catch (error) {
+      console.error('Failed to save scanned documents:', error);
       throw error;
     }
   }
@@ -288,6 +363,96 @@ export class MemoryManager {
   async clearAll(): Promise<void> {
     this.conversations.clear();
     await this.saveConversations();
+  }
+
+  /**
+   * Save a scanned document
+   */
+  async saveScannedDocument(document: ScannedDocument): Promise<void> {
+    this.scannedDocuments.set(document.id, document);
+    await this.saveScannedDocuments();
+  }
+
+  /**
+   * Get a scanned document by ID
+   */
+  async getScannedDocument(documentId: string): Promise<ScannedDocument | null> {
+    return this.scannedDocuments.get(documentId) || null;
+  }
+
+  /**
+   * List all scanned documents
+   */
+  async listScannedDocuments(): Promise<ScannedDocument[]> {
+    return Array.from(this.scannedDocuments.values()).sort(
+      (a, b) => b.metadata.uploadedAt - a.metadata.uploadedAt
+    );
+  }
+
+  /**
+   * Search scanned documents
+   */
+  async searchScannedDocuments(query: string): Promise<ScannedDocument[]> {
+    const results: ScannedDocument[] = [];
+    const lowerQuery = query.toLowerCase();
+
+    for (const doc of this.scannedDocuments.values()) {
+      if (
+        doc.content.toLowerCase().includes(lowerQuery) ||
+        doc.filename.toLowerCase().includes(lowerQuery) ||
+        doc.extractedData.names?.some(n => n.toLowerCase().includes(lowerQuery)) ||
+        doc.extractedData.dates?.some(d => d.toLowerCase().includes(lowerQuery)) ||
+        doc.extractedData.keywords?.some(k => k.toLowerCase().includes(lowerQuery))
+      ) {
+        results.push(doc);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Delete a scanned document
+   */
+  async deleteScannedDocument(documentId: string): Promise<boolean> {
+    const deleted = this.scannedDocuments.delete(documentId);
+    if (deleted) {
+      await this.saveScannedDocuments();
+    }
+    return deleted;
+  }
+
+  /**
+   * Link a scanned document to a conversation
+   */
+  async linkScannedDocumentToConversation(
+    documentId: string,
+    conversationId: string
+  ): Promise<boolean> {
+    const document = this.scannedDocuments.get(documentId);
+    if (!document) return false;
+
+    if (!document.relatedConversationIds) {
+      document.relatedConversationIds = [];
+    }
+
+    if (!document.relatedConversationIds.includes(conversationId)) {
+      document.relatedConversationIds.push(conversationId);
+      await this.saveScannedDocuments();
+    }
+
+    return true;
+  }
+
+  /**
+   * Get scanned documents related to a conversation
+   */
+  async getScannedDocumentsByConversation(
+    conversationId: string
+  ): Promise<ScannedDocument[]> {
+    return Array.from(this.scannedDocuments.values()).filter(
+      doc => doc.relatedConversationIds?.includes(conversationId)
+    );
   }
 
   /**
