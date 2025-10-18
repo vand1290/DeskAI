@@ -5,13 +5,24 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run build:backend && npm run build:ui",
-    "build:backend": "tsc --project tsconfig.backend.json",
-    "build:ui": "cd ui && npm run build",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "ui:dev": "cd ui && npm run dev",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "build": "tsc && vite build",
+    "build:backend": "tsc",
+    "build:frontend": "vite build",
+    "build:examples": "tsc -p tsconfig.examples.json",
+    "dev": "concurrently \"tsc -w\" \"vite\"",
+    "test": "vitest",
+    "lint": "eslint . --ext .ts,.tsx",
+    "start": "node dist/index.js",
+    "example:basic": "npm run build:backend && npm run build:examples && node dist-examples/basic-usage.js",
+    "example:router": "npm run build:backend && npm run build:examples && node dist-examples/router-api.js",
+    "example:workflow": "npm run build:backend && npm run build:examples && node dist-examples/workflow-demo.js"
+  },
+  "keywords": ["helpdesk", "ai", "offline", "memory"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.5.9",

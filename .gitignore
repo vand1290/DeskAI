@@ -5,9 +5,6 @@ out/
 .DS_Store
 .vscode/
 .idea/
-*.swp
-*.swo
-coverage/
-ui/dist/
-ui/node_modules/
-src-tauri/target/
+# Ignore compiled JS files in src (should use dist)
+src/**/*.js
+src/**/*.js.map
