@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { ConversationHistory } from './components/ConversationHistory';
+import { Workflows } from './Workflows';
 
-type View = 'dashboard' | 'history';
+type View = 'dashboard' | 'history' | 'workflows';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -25,6 +26,12 @@ export const App: React.FC = () => {
           >
             History
           </button>
+          <button
+            className={currentView === 'workflows' ? 'active' : ''}
+            onClick={() => setCurrentView('workflows')}
+          >
+            Workflows
+          </button>
         </div>
       </nav>
 
@@ -42,6 +49,9 @@ export const App: React.FC = () => {
               setCurrentView('dashboard');
             }}
           />
+        )}
+        {currentView === 'workflows' && (
+          <Workflows />
         )}
       </main>
 

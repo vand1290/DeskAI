@@ -135,7 +135,7 @@ describe('TaskChainManager', () => {
       const chain = await taskChainManager.createChain('Test Chain');
       
       await expect(
-        taskChainManager.addStep(chain.id, 'invalid-tool' as any, 'Test')
+        taskChainManager.addStep(chain.id, 'invalid-tool' as TaskStep['type'], 'Test')
       ).rejects.toThrow();
     });
 
@@ -206,9 +206,9 @@ describe('TaskChainManager', () => {
 
     it('should reorder remaining steps after removal', async () => {
       const chain = await taskChainManager.createChain('Test Chain');
-      const step1 = await taskChainManager.addStep(chain.id, 'scan', 'Step 1');
+      await taskChainManager.addStep(chain.id, 'scan', 'Step 1');
       const step2 = await taskChainManager.addStep(chain.id, 'ocr', 'Step 2');
-      const step3 = await taskChainManager.addStep(chain.id, 'save', 'Step 3');
+      await taskChainManager.addStep(chain.id, 'save', 'Step 3');
 
       await taskChainManager.removeStep(chain.id, step2.id);
 
@@ -376,7 +376,7 @@ describe('TaskChainManager', () => {
         }
       });
       
-      await taskChainManager.addStep(chain.id, 'failing-tool' as any, 'Failing Step');
+      await taskChainManager.addStep(chain.id, 'failing-tool' as TaskStep['type'], 'Failing Step');
       await taskChainManager.addStep(chain.id, 'save', 'Save');
 
       const result = await taskChainManager.executeChain(chain.id);
@@ -442,7 +442,7 @@ describe('TaskChainManager', () => {
       taskChainManager.registerTool(customTool);
 
       const chain = await taskChainManager.createChain('Custom Chain');
-      await taskChainManager.addStep(chain.id, 'custom-tool' as any, 'Custom Step');
+      await taskChainManager.addStep(chain.id, 'custom-tool' as TaskStep['type'], 'Custom Step');
 
       const result = await taskChainManager.executeChain(chain.id, 'test');
 

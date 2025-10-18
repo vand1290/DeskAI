@@ -1,6 +1,6 @@
 import { MemoryManager } from './memory.js';
 import { Agent } from './agent.js';
-import { TaskChainManager } from './taskChain.js';
+import { TaskChainManager, TaskStep } from './taskChain.js';
 
 export interface RouterRequest {
   action: string;
@@ -296,7 +296,7 @@ export class Router {
     }
 
     const chainId = params.chainId as string;
-    const type = params.type as any;
+    const type = params.type as TaskStep['type'];
     const name = params.name as string;
     const config = params.config as Record<string, unknown> | undefined;
 
