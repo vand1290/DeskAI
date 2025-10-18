@@ -10,3 +10,8 @@ examples/data/
 .env
 .vscode/
 .idea/
+*.js
+*.d.ts
+!vite.config.ts
+!vitest.config.ts
+!.eslintrc.cjs

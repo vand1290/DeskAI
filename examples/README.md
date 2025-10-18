@@ -35,9 +35,36 @@ Shows how to interact with DeskAI using the Router API:
 npm run example:router
 ```
 
+### 3. Secretary Tools (`secretary-tools.ts`) _(NEW)_
+
+Demonstrates the new secretary assistant features:
+- **Writing Tool**: Creating and managing text documents
+- **Document Tool**: Summarizing and extracting structured data
+- **Photo Tool**: Image metadata and OCR (stub)
+- **File Sorting**: Organizing files by name, date, size, and type
+- **Handwriting Recognition**: HTR stub for future integration
+- All operations are 100% offline and secure
+
+**Run it:**
+```bash
+npm run example:secretary
+```
+
+**What it demonstrates:**
+- Document creation with real content
+- Data extraction (emails, dates, phone numbers)
+- Document summarization
+- File sorting and organization
+- Stub implementations ready for ML model integration
+
 ## Data Storage
 
-All example data is stored in `examples/data/conversations.json`. This file is automatically created when you run the examples and contains all conversation history in human-readable JSON format.
+All example data is stored in subdirectories under `examples/data/`:
+- `conversations.json` - Conversation history
+- `documents/` - Text documents created by secretary tools
+- `photos/` - Images processed by photo tools
+
+These files are automatically created when you run the examples and contain data in human-readable formats.
 
 ## Exploring the Examples
 
@@ -53,6 +80,8 @@ These examples can serve as a starting point for:
 - Creating a web API server
 - Integrating with other systems
 - Testing and development
+- Building document processing pipelines
+- Creating automation workflows
 
 ## Next Steps
 

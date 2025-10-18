@@ -23,6 +23,14 @@ Your professional AI helpdesk with persistent memory - 100% offline and secure.
 - **Trend detection** - Understand your interaction patterns over time
 - **Privacy-focused** - All analytics computed locally, never sent anywhere
 
+### 🔧 Secretary Tools (NEW)
+- **Writing Tool** - Create, edit, and manage text documents offline
+- **Photo Tool** - Preview images and extract text via OCR (stub for Tesseract integration)
+- **Document Tool** - Summarize documents and extract structured data (emails, dates, etc.)
+- **File Sorting** - Organize files by date, name, size, or type
+- **Handwriting Recognition** - Stub for offline HTR integration (TrOCR-ready)
+- **100% offline** - All processing happens locally on your machine
+
 ### 🔒 Security & Privacy
 - **100% offline operation** - No network calls, no cloud storage
 - **Local-only storage** - Data stored in `out/conversations.json`
@@ -69,6 +77,11 @@ npm test
 
 # Lint code
 npm run lint
+
+# Run examples
+npm run example:basic      # Basic usage demo
+npm run example:router     # Router API demo
+npm run example:secretary  # Secretary tools demo (NEW)
 ```
 
 ## Project Structure
@@ -131,10 +144,14 @@ DeskAI/
 
 ### Viewing Analytics
 
-1. Click "Show Analytics" in the Dashboard
-2. View statistics about your usage
-3. Explore frequent topics and patterns
-4. Track conversations over time
+1. Click the "Tools" tab in the navigation
+2. Select a tool category:
+   - **Writing Tool**: Create and edit text documents
+   - **Photo Tool**: View images and extract text (OCR stub)
+   - **Document Tool**: Summarize and extract data from documents
+   - **File Sorting**: Organize files by various criteria
+3. Follow the on-screen instructions for each tool
+4. All operations are performed locally on your machine
 
 ## Memory System Architecture
 
