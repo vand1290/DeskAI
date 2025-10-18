@@ -1,6 +1,7 @@
 import { MemoryManager } from './memory.js';
 import { Agent } from './agent.js';
 import { Router } from './router.js';
+import { LearningManager } from './learning.js';
 
 /**
  * Initialize and export the DeskAI system
@@ -9,17 +10,22 @@ export async function initializeDeskAI(dataDir: string = './out') {
   const memory = new MemoryManager(dataDir);
   await memory.initialize();
 
-  const agent = new Agent(memory, { memoryEnabled: true });
-  const router = new Router(memory, agent);
+  const learning = new LearningManager(dataDir);
+  await learning.initialize();
+
+  const agent = new Agent(memory, { memoryEnabled: true }, learning);
+  const router = new Router(memory, agent, learning);
 
   return {
     memory,
     agent,
-    router
+    router,
+    learning
   };
 }
 
-export { MemoryManager, Agent, Router };
+export { MemoryManager, Agent, Router, LearningManager };
 export * from './memory.js';
 export * from './agent.js';
 export * from './router.js';
+export * from './learning.js';

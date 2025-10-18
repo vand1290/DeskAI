@@ -1,5 +1,6 @@
 import { MemoryManager } from './memory.js';
 import { Agent } from './agent.js';
+import { LearningManager } from './learning.js';
 
 export interface RouterRequest {
   action: string;
@@ -19,10 +20,12 @@ export interface RouterResponse {
 export class Router {
   private memory: MemoryManager;
   private agent: Agent;
+  private learning: LearningManager;
 
-  constructor(memory: MemoryManager, agent: Agent) {
+  constructor(memory: MemoryManager, agent: Agent, learning: LearningManager) {
     this.memory = memory;
     this.agent = agent;
+    this.learning = learning;
   }
 
   /**
@@ -60,6 +63,25 @@ export class Router {
         
         case 'filterByTags':
           return await this.handleFilterByTags(request.params);
+        
+        // Learning mode endpoints
+        case 'getLearningEnabled':
+          return await this.handleGetLearningEnabled();
+        
+        case 'setLearningEnabled':
+          return await this.handleSetLearningEnabled(request.params);
+        
+        case 'getSuggestions':
+          return await this.handleGetSuggestions(request.params);
+        
+        case 'getLearningStatistics':
+          return await this.handleGetLearningStatistics();
+        
+        case 'getLearningData':
+          return await this.handleGetLearningData();
+        
+        case 'resetLearning':
+          return await this.handleResetLearning();
         
         default:
           return {
@@ -192,6 +214,60 @@ export class Router {
     return {
       success: true,
       data: { conversations }
+    };
+  }
+
+  // Learning mode handlers
+  private async handleGetLearningEnabled(): Promise<RouterResponse> {
+    const enabled = this.learning.isEnabled();
+    return {
+      success: true,
+      data: { enabled }
+    };
+  }
+
+  private async handleSetLearningEnabled(params?: Record<string, unknown>): Promise<RouterResponse> {
+    if (params?.enabled === undefined || typeof params.enabled !== 'boolean') {
+      return { success: false, error: 'Boolean enabled parameter is required' };
+    }
+
+    await this.learning.setEnabled(params.enabled as boolean);
+    return {
+      success: true,
+      data: { enabled: params.enabled }
+    };
+  }
+
+  private async handleGetSuggestions(params?: Record<string, unknown>): Promise<RouterResponse> {
+    const limit = (params?.limit as number) || 5;
+    const suggestions = await this.learning.generateSuggestions(limit);
+    return {
+      success: true,
+      data: { suggestions }
+    };
+  }
+
+  private async handleGetLearningStatistics(): Promise<RouterResponse> {
+    const statistics = await this.learning.getStatistics();
+    return {
+      success: true,
+      data: { statistics }
+    };
+  }
+
+  private async handleGetLearningData(): Promise<RouterResponse> {
+    const data = await this.learning.getLearningData();
+    return {
+      success: true,
+      data
+    };
+  }
+
+  private async handleResetLearning(): Promise<RouterResponse> {
+    await this.learning.reset();
+    return {
+      success: true,
+      data: { message: 'Learning data has been reset' }
     };
   }
 }
