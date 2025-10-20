@@ -3,7 +3,6 @@
 
 use std::path::PathBuf;
 use std::fs;
-use tesseract::Tesseract;
 
 /// Get the out directory path
 fn get_out_dir() -> PathBuf {
@@ -98,33 +97,54 @@ fn read_file(file_path: String) -> Result<String, String> {
         .map_err(|e| format!("Failed to read file: {}", e))
 }
 
-/// OCR functionality - extract text from image using Tesseract
+/// OCR functionality - extract text from image using Tesseract via command line
 #[tauri::command]
 async fn extract_text_from_image(image_path: String) -> Result<String, String> {
-    // Set Tesseract path (adjust if installed elsewhere)
-    let tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe";
+    use std::process::Command;
     
     // Check if Tesseract is installed
-    if !std::path::Path::new(tesseract_path).exists() {
-        return Err(format!(
-            "Tesseract OCR not found at: {}\n\nPlease install Tesseract OCR:\n1. Download from: https://github.com/UB-Mannheim/tesseract/wiki\n2. Or run: winget install UB-Mannheim.TesseractOCR",
-            tesseract_path
-        ));
+    let tesseract_check = Command::new("tesseract")
+        .arg("--version")
+        .output();
+    
+    if tesseract_check.is_err() {
+        return Err(
+            "Tesseract OCR not found in PATH.\n\n\
+            Please install Tesseract OCR:\n\
+            1. Download from: https://github.com/UB-Mannheim/tesseract/wiki\n\
+            2. Or run: winget install UB-Mannheim.TesseractOCR\n\
+            3. Make sure it's added to your PATH".to_string()
+        );
     }
     
-    // Perform OCR
-    match Tesseract::new(Some(tesseract_path), Some("eng"))
-        .and_then(|api| api.set_image(&image_path))
-        .and_then(|api| api.get_text())
-    {
-        Ok(text) => {
-            if text.trim().is_empty() {
-                Ok("No text detected in the image.".to_string())
-            } else {
-                Ok(text)
-            }
-        }
-        Err(e) => Err(format!("OCR failed: {}", e))
+    // Create temporary output file
+    let temp_output = std::env::temp_dir().join("ocr_output");
+    let temp_output_str = temp_output.to_string_lossy().to_string();
+    
+    // Run Tesseract
+    let output = Command::new("tesseract")
+        .arg(&image_path)
+        .arg(&temp_output_str)
+        .output()
+        .map_err(|e| format!("Failed to execute Tesseract: {}", e))?;
+    
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Tesseract failed: {}", error_msg));
+    }
+    
+    // Read the output file (Tesseract adds .txt automatically)
+    let output_file = format!("{}.txt", temp_output_str);
+    let text = fs::read_to_string(&output_file)
+        .map_err(|e| format!("Failed to read OCR output: {}", e))?;
+    
+    // Clean up temp file
+    let _ = fs::remove_file(&output_file);
+    
+    if text.trim().is_empty() {
+        Ok("No text detected in the image.".to_string())
+    } else {
+        Ok(text)
     }
 }
 
