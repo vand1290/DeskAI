@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Node
 node_modules/
 npm-debug.log
@@ -22,10 +23,32 @@ build/
 *.exe
 *.msi
 *.nsis
+=======
+# Dependencies
+node_modules/
+ui/node_modules/
+
+# Build outputs
+dist/
+out/
+ui/dist/
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Development
+.DS_Store
+*.log
+*.swp
+*.swo
+*~
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
 
 # IDE
 .vscode/
 .idea/
+<<<<<<< HEAD
 *.swp
 *.swo
 
@@ -38,3 +61,13 @@ src-tauri/target/
 
 # Logs
 *.log
+=======
+*.iml
+
+# Testing
+coverage/
+
+# Misc
+.env
+.env.local
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28

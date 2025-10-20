@@ -9,7 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@tauri-apps/api": "^1.6.0",
+=======
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

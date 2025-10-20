@@ -1,5 +1,6 @@
 [package]
 name = "deskai"
+<<<<<<< HEAD
 version = "0.1.0"
 description = "DeskAI - Offline Meta-Agent"
 authors = ["you"]
@@ -19,4 +20,25 @@ tokio = { version = "1", features = ["full"] }
 
 [features]
 default = ["custom-protocol"]
+=======
+version = "1.0.0"
+description = "100% offline meta-agent for desktop"
+authors = ["DeskAI Team"]
+license = "MIT"
+repository = ""
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1.5.0", features = [] }
+
+[dependencies]
+tauri = { version = "1.5.0", features = ["shell-open"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+# This feature is used for production builds or when `devPath` points to the filesystem
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
 custom-protocol = ["tauri/custom-protocol"]

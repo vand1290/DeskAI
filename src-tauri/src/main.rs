@@ -2,7 +2,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::path::PathBuf;
+<<<<<<< HEAD
 use std::fs;
+=======
+use tauri::Manager;
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
 
 /// Get the out directory path
 fn get_out_dir() -> PathBuf {
@@ -13,6 +17,7 @@ fn get_out_dir() -> PathBuf {
 
 /// Tauri command to process agent requests
 #[tauri::command]
+<<<<<<< HEAD
 async fn process_request(query: String, model: Option<String>) -> Result<String, String> {
     let model_name = model.unwrap_or_else(|| "qwen2.5:7b".to_string());
     
@@ -208,6 +213,28 @@ async fn get_available_models() -> Result<Vec<String>, String> {
         "qwen2.5:7b".to_string(),
         "llama3:latest".to_string(),
         "deepseek-r1:8b".to_string(),
+=======
+fn process_request(query: String, model: Option<String>) -> Result<String, String> {
+    // In production, this would call the TypeScript backend
+    // For now, return a structured JSON response
+    let response = serde_json::json!({
+        "result": format!("Processing query: {} with model: {}", query, model.unwrap_or_else(|| "default".to_string())),
+        "route": "model:qwen2.5:7b",
+        "toolsUsed": [],
+        "deterministic": true
+    });
+    
+    Ok(response.to_string())
+}
+
+/// Tauri command to get available models
+#[tauri::command]
+fn get_available_models() -> Result<Vec<String>, String> {
+    Ok(vec![
+        "qwen2.5:7b".to_string(),
+        "llama2:7b".to_string(),
+        "mistral:7b".to_string(),
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
     ])
 }
 
@@ -216,6 +243,7 @@ async fn get_available_models() -> Result<Vec<String>, String> {
 fn get_available_tools() -> Result<Vec<serde_json::Value>, String> {
     Ok(vec![
         serde_json::json!({
+<<<<<<< HEAD
             "name": "file_search",
             "description": "Search for files in the system"
         }),
@@ -238,6 +266,22 @@ fn get_available_tools() -> Result<Vec<serde_json::Value>, String> {
         serde_json::json!({
             "name": "email",
             "description": "Access emails"
+=======
+            "name": "file_write",
+            "description": "Write content to a file in the out/ directory"
+        }),
+        serde_json::json!({
+            "name": "file_read",
+            "description": "Read content from a file in the out/ directory"
+        }),
+        serde_json::json!({
+            "name": "calculator",
+            "description": "Perform basic arithmetic calculations"
+        }),
+        serde_json::json!({
+            "name": "text_analysis",
+            "description": "Analyze text properties"
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
         }),
     ])
 }
@@ -252,6 +296,10 @@ fn init_out_dir() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() {
+<<<<<<< HEAD
+=======
+    // Initialize out directory
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
     if let Err(e) = init_out_dir() {
         eprintln!("Failed to initialize out directory: {}", e);
     }
@@ -260,12 +308,16 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             process_request,
             get_available_models,
+<<<<<<< HEAD
             get_available_tools,
             search_files,
             read_file,
             extract_text_from_image,
             get_calendar_events,
             get_emails
+=======
+            get_available_tools
+>>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
