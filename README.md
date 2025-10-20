@@ -1,455 +1,221 @@
-# DeskAI
+# 🤖 DeskAI - Offline Meta-Agent Desktop Assistant
 
-🤖 **100% Offline Meta-Agent for Desktop**
+A 100% offline AI-powered desktop assistant with OCR capabilities, local model integration, and intelligent secretary tools.
 
-Your professional helpdesk powered by local AI models and tools - completely offline and private.
+![DeskAI Screenshot](https://img.shields.io/badge/Platform-Windows-blue)
+![Rust](https://img.shields.io/badge/Rust-1.70+-orange)
+![React](https://img.shields.io/badge/React-18.2-61DAFB)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-## Overview
+## ✨ Features
 
-DeskAI is an offline meta-agent that routes user requests to local models and tools, runs everything on-device, and provides a clean desktop UI. All processing happens locally on your machine with no network calls.
+### 🧠 AI Integration
+- **8 Local Ollama Models** integrated out-of-the-box:
+  - `granite3.1-dense:8b` - IBM's enterprise AI model
+  - `ALIENTELLIGENCE/ai2ndbrain:latest` - Specialized reasoning
+  - `aya-expanse:latest` - Multilingual support
+  - `gemma3:12b` - Google's efficient model
+  - `qwen2.5-coder:7b` - Advanced coding assistant
+  - `qwen2.5:7b` - General purpose model
+  - `llama3:latest` - Meta's flagship model
+  - `deepseek-r1:8b` - Deep reasoning capabilities
 
-### Key Features
+### 📷 OCR (Optical Character Recognition)
+- **Single Image OCR** - Extract text from individual images
+- **Bulk OCR** - Scan all images in your system automatically
+- **Search in OCR Results** - Find specific text across all scanned images
+- Supports: PNG, JPG, JPEG, BMP, GIF
 
-- ✅ **100% Offline** - No network calls, all processing on-device
-- ✅ **Deterministic Behavior** - Reproducible results for the same inputs
-- ✅ **Privacy First** - Your data never leaves your machine
-- ✅ **Secure by Design** - Allowlisted tools, filesystem restricted to sandboxed directories
-- ✅ **Windows Packaging** - Distributable as a Windows .exe via Tauri
-- ✅ **Local Model Support** - Interface for plugging in your own local model runners
-- ✅ **Personal Secretary Tools** - Document processing, OCR, handwriting recognition, file management, and writing tools
+### 🔍 File Management
+- **Recursive File Search** - Search entire directory trees (depth 3)
+- **Smart Filtering** - Limit results to top 50 matches
+- **Quick Preview** - View file contents instantly
+- **Network Search Ready** - Extensible to search on intranet
 
-## Architecture
+### 🛠️ Secretary Tools
+- **📁 File Search** - Local and network file discovery
+- **📷 OCR** - Text extraction from images
+- **📅 Calendar** - Event management (coming soon)
+- **📧 Email** - Email integration (coming soon)
 
-### Monorepo Layout
-
-```
-DeskAI/
-├── src/                    # Backend TypeScript logic (no network calls)
-│   ├── agent.ts           # Core meta-agent logic
-│   ├── models.ts          # Model reference system
-│   ├── tools.ts           # Allowlisted tool definitions
-│   ├── router.ts          # Request routing logic
-│   └── __tests__/         # Unit tests
-├── ui/                     # React frontend
-│   ├── App.tsx            # Main application component
-│   ├── components/        # UI components
-│   └── styles.css         # Application styling
-├── src-tauri/             # Tauri desktop wrapper
-│   ├── src/main.rs        # Rust entry point
-│   └── tauri.conf.json    # Tauri configuration
-└── out/                   # Sandboxed output directory for file operations
-```
-
-## Getting Started
+## 🚀 Installation
 
 ### Prerequisites
 
-- Node.js 18+ (LTS recommended)
-- npm 8+
-- Rust 1.70+ (for Tauri builds)
+1. **Install Ollama** (AI Backend)
+   ```powershell
+   winget install Ollama.Ollama
+   ```
+   Or download from: https://ollama.ai
 
-### Installation
+2. **Install Tesseract OCR**
+   ```powershell
+   winget install UB-Mannheim.TesseractOCR
+   ```
+   Or download from: https://github.com/UB-Mannheim/tesseract/wiki
 
-1. Clone the repository:
-```bash
+3. **Pull AI Models**
+   ```powershell
+   ollama pull qwen2.5:7b
+   ollama pull llama3:latest
+   ollama pull deepseek-r1:8b
+   # Add more models as needed
+   ```
+
+### Quick Start
+
+1. **Download the installer** from [Releases](https://github.com/vand1290/DeskAI/releases)
+2. Run `DeskAI_1.0.0_x64-setup.exe`
+3. Launch DeskAI from Start Menu
+4. Start chatting with your local AI!
+
+## 🛠️ Development Setup
+
+### Prerequisites
+- **Rust** 1.70+ ([Install](https://rustup.rs/))
+- **Node.js** 18+ ([Install](https://nodejs.org/))
+- **Cargo** (comes with Rust)
+- **npm** (comes with Node.js)
+
+### Build from Source
+
+```powershell
+# Clone the repository
 git clone https://github.com/vand1290/DeskAI.git
 cd DeskAI
-```
 
-2. Install dependencies:
-```bash
+# Install UI dependencies
+cd ui
 npm install
-cd ui && npm install && cd ..
-```
+cd ..
 
-3. Build the backend:
-```bash
-npm run build
-```
+# Build the app
+npm run tauri:build
 
-### Development
-
-#### Run Tests
-```bash
-npm test
-```
-
-#### Start UI Development Server
-```bash
-npm run ui:dev
-```
-
-The UI will be available at `http://localhost:1420`
-
-#### Run Tauri Development Build
-```bash
+# Or run in development mode
 npm run tauri:dev
 ```
 
-This starts the desktop application in development mode with hot-reload.
-
-### Building for Production
-
-#### Build Backend and UI
-```bash
-npm run build
+The installer will be generated at:
+```
+src-tauri/target/release/bundle/nsis/DeskAI_1.0.0_x64-setup.exe
 ```
 
-#### Build Windows .exe
-```bash
-npm run tauri:build
+## 📁 Project Structure
+
+```
+DeskAI/
+├── src-tauri/          # Rust backend
+│   ├── src/
+│   │   └── main.rs     # Main application logic
+│   ├── Cargo.toml      # Rust dependencies
+│   └── tauri.conf.json # Tauri configuration
+├── ui/                 # React frontend
+│   ├── App.tsx         # Main UI component
+│   ├── App.css         # Styling
+│   └── package.json    # Node dependencies
+├── backend/            # Python AI orchestration
+│   ├── agent.py        # Meta-agent logic
+│   └── tools/          # Tool implementations
+└── README.md
 ```
 
-The Windows installer will be created in `src-tauri/target/release/bundle/`
+## 🎨 Tech Stack
 
-## Usage
+### Backend
+- **Rust** - High-performance system integration
+- **Tauri 1.5** - Cross-platform desktop framework
+- **Tokio** - Async runtime
+- **Reqwest** - HTTP client for Ollama API
 
-### Basic Request
+### Frontend
+- **React 18** - UI framework
+- **TypeScript 5** - Type safety
+- **Vite 4** - Build tool
+- **Tauri API** - Native system access
 
-1. Open the application
-2. Select a model from the dropdown (e.g., `qwen2.5:7b`)
-3. Enter your request in the text area
-4. Click "Submit"
+### AI & Tools
+- **Ollama** - Local LLM inference
+- **Tesseract OCR** - Text extraction
+- **Python** - Meta-agent orchestration
 
-The agent will:
-- Parse your request
-- Route it to the appropriate model or tool
-- Execute any necessary operations
-- Return a deterministic response
+## 🔧 Configuration
 
-### Available Tools
-
-#### Basic Tools
-- **file_write** - Write content to files in the `out/` directory
-- **file_read** - Read content from files in the `out/` directory
-- **calculator** - Perform arithmetic calculations
-- **text_analysis** - Analyze text properties (word count, character count, etc.)
-
-#### Personal Secretary Tools
-
-##### 📁 File Manager
-Organize and manage your files with ease:
-- List files in directories with metadata
-- Sort files by name, date, size, or client
-- Add custom metadata (tags, categories, client names)
-- Search files by name or metadata
-- Auto-organize files into client folders
-
-**Usage:**
-```javascript
-// List files
-file_manager({ action: 'list', folderPath: 'out/' })
-
-// Sort by date
-file_manager({ action: 'sort', folderPath: 'out/', sortBy: 'date', order: 'desc' })
-
-// Add metadata
-file_manager({ 
-  action: 'addMetadata', 
-  filePath: 'out/report.pdf', 
-  metadata: { client: 'Acme Corp', tags: ['important', 'Q4'] }
-})
-
-// Search
-file_manager({ action: 'search', folderPath: 'out/', query: 'important' })
+### Custom Ollama URL
+Edit `src-tauri/src/main.rs`:
+```rust
+let ollama_url = "http://localhost:11434/api/generate";
 ```
 
-##### 📄 Document Processor
-Extract and analyze document content:
-- Extract text from PDFs (pdf-parse - fully offline)
-- Read text files
-- Summarize documents
-- Extract structured data (dates, emails, amounts)
-- Full-text search within documents
-- Get document metadata
+### Custom Tesseract Path
+Default: `C:\Program Files\Tesseract-OCR\tesseract.exe`
 
-**Usage:**
-```javascript
-// Extract from PDF
-document_processor({ action: 'extractPDF', filePath: 'out/document.pdf' })
+Update in `src-tauri/src/main.rs` if installed elsewhere.
 
-// Extract emails from text
-document_processor({ 
-  action: 'extractData', 
-  text: 'Contact us at support@example.com', 
-  dataType: 'emails' 
-})
-
-// Search within document
-document_processor({ 
-  action: 'search', 
-  text: documentContent, 
-  query: 'important term' 
-})
+### Search Depth & Limits
+In `search_files()` function:
+```rust
+if depth > 3 { return; }  // Max recursion depth
+if results.len() >= 50 { return; }  // Max results
 ```
 
-##### ✍️ Writing Tool
-Create and edit documents with templates:
-- Create documents in .txt or .md format
-- Edit existing documents
-- Format as markdown or plain text
-- Use built-in templates (business letter, memo, meeting notes)
-- Auto-save functionality
-
-**Usage:**
-```javascript
-// Create document
-writing({ 
-  action: 'create', 
-  title: 'Meeting Notes', 
-  content: '# Notes\n\nDiscussion points...', 
-  format: 'md' 
-})
-
-// Use template
-writing({ action: 'useTemplate', templateName: 'business_letter' })
-
-// Format document
-writing({ 
-  action: 'format', 
-  content: '# Title\n\n**Bold**', 
-  style: 'plain' 
-})
-```
-
-##### 🔍 OCR Tool
-Extract text from images using Tesseract.js:
-- Support for JPG, PNG, BMP, WebP formats
-- Multi-language support (English, German, French, Spanish, and more)
-- Extract text with layout information (bounding boxes)
-- Batch process multiple images
-- Image preprocessing for better accuracy
-
-**Usage:**
-```javascript
-// Extract text from image
-ocr({ action: 'extract', imagePath: 'out/scan.jpg', language: 'eng' })
-
-// Get supported languages
-ocr({ action: 'languages' })
-
-// Batch process
-ocr({ action: 'batch', imagePaths: ['image1.jpg', 'image2.jpg'] })
-```
-
-##### ✏️ Handwriting Recognition
-Specialized OCR for handwritten text:
-- Enhanced recognition for handwriting
-- Confidence scoring for extracted text
-- Correction suggestions for low-confidence words
-- Support for cursive, print, and mixed writing
-- Validation of recognition quality
-
-**Usage:**
-```javascript
-// Recognize handwriting
-handwriting({ action: 'recognize', imagePath: 'out/handwritten.jpg' })
-
-// Validate recognition
-handwriting({ 
-  action: 'validate', 
-  text: recognizedText, 
-  imagePath: 'out/handwritten.jpg' 
-})
-```
-
-### Supported Models (Stubs)
-
-The current implementation includes stub models that demonstrate the architecture:
-
-- `qwen2.5:7b`
-- `llama2:7b`
-- `mistral:7b`
-
-**Note:** These are deterministic stubs. To use actual local models, you'll need to implement the `LocalModel` interface with your preferred model runner (e.g., Ollama, llama.cpp, etc.).
-
-## Security
-
-### Filesystem Restrictions
-
-All file operations are strictly sandboxed to the `out/` directory. The application cannot:
-- Access files outside the `out/` directory
-- Delete or modify system files
-- Execute arbitrary shell commands
-
-### Network Isolation
-
-The application makes **zero network calls**. This is enforced by:
-- No network libraries in dependencies
-- Tauri's allowlist configuration blocks HTTP requests
-- Content Security Policy (CSP) prevents external resource loading
-
-### Tool Allowlisting
-
-Only explicitly allowlisted tools can be executed. Each tool:
-- Has a defined interface
-- Implements security checks
-- Operates within sandboxed constraints
-
-## Extending DeskAI
-
-### Adding a New Tool
-
-1. Create a class implementing the `Tool` interface in `src/tools.ts`:
-
-```typescript
-export class MyCustomTool implements Tool {
-  name = 'my_tool';
-  description = 'Description of what my tool does';
-
-  isAllowed(): boolean {
-    return true;
-  }
-
-  async execute(params: any): Promise<any> {
-    // Implementation
-    return { success: true, result: 'value' };
-  }
-}
-```
+## 📸 Screenshots
 
-2. Register it in the `ToolRegistry` constructor:
+### Agent View
+![Agent Interface](https://via.placeholder.com/800x450?text=Agent+Interface)
 
-```typescript
-this.registerTool(new MyCustomTool());
-```
+### Secretary Tools
+![Secretary Tools](https://via.placeholder.com/800x450?text=Secretary+Tools)
 
-### Connecting Real Local Models
+### OCR in Action
+![OCR Feature](https://via.placeholder.com/800x450?text=OCR+Feature)
 
-To use actual local model inference:
+## 🤝 Contributing
 
-1. Install your preferred local model runner (e.g., Ollama)
-2. Implement the `LocalModel` interface:
+Contributions are welcome! Please:
 
-```typescript
-export class OllamaModel implements LocalModel {
-  name: string;
-  
-  async load(): Promise<void> {
-    // Connect to Ollama
-  }
-  
-  async infer(prompt: string): Promise<string> {
-    // Call Ollama API
-  }
-}
-```
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-3. Register your model in the `ModelRegistry`
+## 📝 Roadmap
 
-## API Reference
+- [x] Ollama integration with 8 models
+- [x] OCR with Tesseract
+- [x] File search
+- [x] Bulk OCR scanning
+- [ ] Calendar integration (Outlook, Google Calendar)
+- [ ] Email integration (IMAP, Exchange)
+- [ ] Network file search (SMB, NFS)
+- [ ] Voice input/output
+- [ ] Multi-language OCR
+- [ ] Document summarization
+- [ ] Code analysis tools
 
-### Agent Interface
+## 🐛 Known Issues
 
-```typescript
-interface AgentRequest {
-  query: string;      // User's request
-  model?: string;     // Optional model selection
-  context?: any;      // Optional context
-}
+- OCR requires Tesseract to be in PATH
+- Some antivirus software may flag the installer (false positive)
+- Large OCR batches may take time (20+ images)
 
-interface AgentResponse {
-  result: string;         // Response text
-  route: string;          // Route taken (e.g., "model:qwen2.5:7b")
-  toolsUsed: string[];    // List of tools executed
-  deterministic: boolean; // Whether result is deterministic
-}
-```
+## 📄 License
 
-### Tool Interface
+MIT License - see [LICENSE](LICENSE) file for details
 
-```typescript
-interface Tool {
-  name: string;
-  description: string;
-  execute(params: any): Promise<any>;
-  isAllowed(): boolean;
-}
-```
+## 🙏 Acknowledgments
 
-### Model Interface
+- [Tauri](https://tauri.app/) - Desktop framework
+- [Ollama](https://ollama.ai/) - Local LLM runtime
+- [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) - Text recognition
+- [React](https://react.dev/) - UI framework
 
-```typescript
-interface LocalModel {
-  name: string;
-  load(): Promise<void>;
-  infer(prompt: string): Promise<string>;
-}
-```
+## 📞 Support
 
-## Development Workflow
+- **Issues**: [GitHub Issues](https://github.com/vand1290/DeskAI/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/vand1290/DeskAI/discussions)
 
-1. Make changes to backend code in `src/`
-2. Run tests: `npm test`
-3. Build: `npm run build`
-4. Test UI changes: `npm run ui:dev`
-5. Test desktop app: `npm run tauri:dev`
-6. Build for production: `npm run tauri:build`
+---
 
-## Personal Secretary UI
-
-The application includes a dedicated secretary mode accessible via the "Secretary Tools" button in the header:
-
-1. **Secretary Dashboard** - Grid view of all available tools
-2. **Individual Tool Interfaces** - Dedicated UI for each tool with intuitive controls
-3. **Easy Navigation** - Switch between Agent and Secretary modes seamlessly
-
-## Troubleshooting
-
-### Build Issues
-
-**Error: Rust not found**
-- Install Rust from https://rustup.rs/
-
-**Error: Node version too old**
-- Install Node.js 18+ from https://nodejs.org/
-
-**Error: npm install fails**
-- Try `npm install --force` if there are peer dependency conflicts
-- Clear npm cache: `npm cache clean --force`
-
-### Runtime Issues
-
-**Tools not working**
-- Ensure the `out/` directory exists and is writable
-- Check filesystem permissions
-
-**Models not loading**
-- Verify model stubs are registered in `ModelRegistry`
-- For real models, ensure your local model runner is running
-
-**OCR not working**
-- Tesseract.js downloads language data on first use
-- Ensure internet connection for initial setup, then fully offline
-- Supported image formats: JPG, PNG, BMP, WebP
-
-**PDF extraction fails**
-- Ensure the PDF is not encrypted
-- Check that the file path is correct and accessible
-- Some PDFs with complex layouts may not extract perfectly
-
-**File manager can't access folders**
-- Check that folder paths are correct
-- Ensure the application has read/write permissions
-- On Windows, use forward slashes or double backslashes in paths
-
-## Contributing
-
-This is a proof-of-concept implementation. Contributions are welcome!
-
-Areas for improvement:
-- Real local model integration
-- Additional tools
-- Enhanced UI/UX
-- Performance optimizations
-- Cross-platform testing
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Acknowledgments
-
-- Built with [Tauri](https://tauri.app/) for desktop packaging
-- UI powered by [React](https://react.dev/)
-- Backend in TypeScript for type safety and maintainability
+Made with ❤️ by the DeskAI Team
