@@ -1,0 +1,12 @@
+[MASTER]
+load-plugins=pylint_flask
+
+[FORMAT]
+max-line-length=88
+
+[MESSAGES CONTROL]
+disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+
+[REPORTS]
+output-format=json
+reports=no
