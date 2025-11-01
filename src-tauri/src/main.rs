@@ -2,11 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::path::PathBuf;
-<<<<<<< HEAD
 use std::fs;
-=======
 use tauri::Manager;
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
 
 /// Get the out directory path
 fn get_out_dir() -> PathBuf {
@@ -15,13 +12,25 @@ fn get_out_dir() -> PathBuf {
     app_data.join("deskai").join("out")
 }
 
+/// Get bundled Tesseract path
+fn get_tesseract_path(app_handle: &tauri::AppHandle) -> PathBuf {
+    app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource dir")
+        .join("tesseract")
+        .join("tesseract.exe")
+}
+
 /// Tauri command to process agent requests
 #[tauri::command]
-<<<<<<< HEAD
 async fn process_request(query: String, model: Option<String>) -> Result<String, String> {
     let model_name = model.unwrap_or_else(|| "qwen2.5:7b".to_string());
     
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))  // 2 minute timeout for AI responses
+        .build()
+        .unwrap();
     let ollama_url = "http://localhost:11434/api/generate";
     
     let payload = serde_json::json!({
@@ -60,16 +69,22 @@ async fn process_request(query: String, model: Option<String>) -> Result<String,
 #[tauri::command]
 fn search_files(query: String, search_path: Option<String>) -> Result<Vec<serde_json::Value>, String> {
     let base_path = search_path.unwrap_or_else(|| {
-        std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users".to_string())
+        // Default to Documents folder instead of entire user profile
+        let userprofile = std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users".to_string());
+        format!("{}\\Documents", userprofile)
     });
     
     let mut results = Vec::new();
     
     fn search_recursive(dir: &std::path::Path, query: &str, results: &mut Vec<serde_json::Value>, depth: usize) {
-        if depth > 3 { return; }
+        // Reduced depth from 3 to 2 for faster searches
+        if depth > 2 || results.len() >= 50 { return; }
         
         if let Ok(entries) = fs::read_dir(dir) {
             for entry in entries.flatten() {
+                // Check limit early to avoid unnecessary processing
+                if results.len() >= 50 { return; }
+                
                 let path = entry.path();
                 let file_name = entry.file_name().to_string_lossy().to_lowercase();
                 
@@ -80,11 +95,9 @@ fn search_files(query: String, search_path: Option<String>) -> Result<Vec<serde_
                         "is_dir": path.is_dir(),
                         "size": entry.metadata().ok().map(|m| m.len())
                     }));
-                    
-                    if results.len() >= 50 { return; }
                 }
                 
-                if path.is_dir() {
+                if path.is_dir() && results.len() < 50 {
                     search_recursive(&path, query, results, depth + 1);
                 }
             }
@@ -102,32 +115,56 @@ fn read_file(file_path: String) -> Result<String, String> {
         .map_err(|e| format!("Failed to read file: {}", e))
 }
 
-/// OCR functionality - extract text from image using Tesseract via command line
+/// OCR functionality - extract text from image using bundled Tesseract
 #[tauri::command]
-async fn extract_text_from_image(image_path: String) -> Result<String, String> {
+async fn extract_text_from_image(
+    image_path: String,
+    app_handle: tauri::AppHandle
+) -> Result<String, String> {
     use std::process::Command;
     
-    // Check if Tesseract is installed
-    let tesseract_check = Command::new("tesseract")
+    // Try bundled Tesseract first
+    let bundled_tesseract = get_tesseract_path(&app_handle);
+    let tesseract_exe = if bundled_tesseract.exists() {
+        bundled_tesseract.to_string_lossy().to_string()
+    } else {
+        // Check common Windows install locations
+        let common_paths = vec![
+            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+            r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        ];
+        
+        let mut found_path = "tesseract".to_string();
+        for path in common_paths {
+            if std::path::Path::new(path).exists() {
+                found_path = path.to_string();
+                break;
+            }
+        }
+        found_path
+    };
+    
+    // Check if Tesseract is available
+    let tesseract_check = Command::new(&tesseract_exe)
         .arg("--version")
         .output();
     
     if tesseract_check.is_err() {
         return Err(
-            "Tesseract OCR not found in PATH.\n\n\
+            "Tesseract OCR not found.\n\n\
             Please install Tesseract OCR:\n\
             1. Download from: https://github.com/UB-Mannheim/tesseract/wiki\n\
             2. Or run: winget install UB-Mannheim.TesseractOCR\n\
-            3. Make sure it's added to your PATH".to_string()
+            3. Restart your computer".to_string()
         );
     }
     
     // Create temporary output file
-    let temp_output = std::env::temp_dir().join("ocr_output");
+    let temp_output = std::env::temp_dir().join("deskai_ocr_output");
     let temp_output_str = temp_output.to_string_lossy().to_string();
     
     // Run Tesseract
-    let output = Command::new("tesseract")
+    let output = Command::new(&tesseract_exe)
         .arg(&image_path)
         .arg(&temp_output_str)
         .output()
@@ -150,6 +187,55 @@ async fn extract_text_from_image(image_path: String) -> Result<String, String> {
         Ok("No text detected in the image.".to_string())
     } else {
         Ok(text)
+    }
+}
+
+/// Check if Ollama is installed and running
+#[tauri::command]
+async fn check_ollama_status() -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(2))  // 2 second timeout
+        .build()
+        .unwrap();
+    
+    match client.get("http://localhost:11434/api/tags").send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                Ok(serde_json::json!({
+                    "installed": true,
+                    "running": true,
+                    "message": "Ollama is running"
+                }))
+            } else {
+                Ok(serde_json::json!({
+                    "installed": true,
+                    "running": false,
+                    "message": "Ollama is installed but not running"
+                }))
+            }
+        }
+        Err(_) => {
+            Ok(serde_json::json!({
+                "installed": false,
+                "running": false,
+                "message": "Ollama not found. Please install from https://ollama.ai"
+            }))
+        }
+    }
+}
+
+/// Auto-start Ollama if not running
+#[tauri::command]
+async fn start_ollama() -> Result<String, String> {
+    use std::process::Command;
+    
+    // Try to start Ollama
+    match Command::new("ollama").arg("serve").spawn() {
+        Ok(_) => {
+            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+            Ok("Ollama started successfully".to_string())
+        }
+        Err(e) => Err(format!("Failed to start Ollama: {}", e))
     }
 }
 
@@ -213,28 +299,6 @@ async fn get_available_models() -> Result<Vec<String>, String> {
         "qwen2.5:7b".to_string(),
         "llama3:latest".to_string(),
         "deepseek-r1:8b".to_string(),
-=======
-fn process_request(query: String, model: Option<String>) -> Result<String, String> {
-    // In production, this would call the TypeScript backend
-    // For now, return a structured JSON response
-    let response = serde_json::json!({
-        "result": format!("Processing query: {} with model: {}", query, model.unwrap_or_else(|| "default".to_string())),
-        "route": "model:qwen2.5:7b",
-        "toolsUsed": [],
-        "deterministic": true
-    });
-    
-    Ok(response.to_string())
-}
-
-/// Tauri command to get available models
-#[tauri::command]
-fn get_available_models() -> Result<Vec<String>, String> {
-    Ok(vec![
-        "qwen2.5:7b".to_string(),
-        "llama2:7b".to_string(),
-        "mistral:7b".to_string(),
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
     ])
 }
 
@@ -243,7 +307,6 @@ fn get_available_models() -> Result<Vec<String>, String> {
 fn get_available_tools() -> Result<Vec<serde_json::Value>, String> {
     Ok(vec![
         serde_json::json!({
-<<<<<<< HEAD
             "name": "file_search",
             "description": "Search for files in the system"
         }),
@@ -266,22 +329,6 @@ fn get_available_tools() -> Result<Vec<serde_json::Value>, String> {
         serde_json::json!({
             "name": "email",
             "description": "Access emails"
-=======
-            "name": "file_write",
-            "description": "Write content to a file in the out/ directory"
-        }),
-        serde_json::json!({
-            "name": "file_read",
-            "description": "Read content from a file in the out/ directory"
-        }),
-        serde_json::json!({
-            "name": "calculator",
-            "description": "Perform basic arithmetic calculations"
-        }),
-        serde_json::json!({
-            "name": "text_analysis",
-            "description": "Analyze text properties"
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
         }),
     ])
 }
@@ -296,28 +343,36 @@ fn init_out_dir() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() {
-<<<<<<< HEAD
-=======
-    // Initialize out directory
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
     if let Err(e) = init_out_dir() {
         eprintln!("Failed to initialize out directory: {}", e);
     }
 
     tauri::Builder::default()
+        .setup(|app| {
+            // Check Ollama status on startup
+            let app_handle = app.handle();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(status) = check_ollama_status().await {
+                    if let Some(running) = status.get("running") {
+                        if !running.as_bool().unwrap_or(false) {
+                            println!("Ollama not running. Please start it manually with 'ollama serve'");
+                        }
+                    }
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             process_request,
             get_available_models,
-<<<<<<< HEAD
             get_available_tools,
             search_files,
             read_file,
             extract_text_from_image,
             get_calendar_events,
-            get_emails
-=======
-            get_available_tools
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
+            get_emails,
+            check_ollama_status,
+            start_ollama
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -3,8 +3,7 @@
     "beforeDevCommand": "cd ui && npm run dev",
     "beforeBuildCommand": "cd ui && npm run build",
     "devPath": "http://localhost:1420",
-    "distDir": "../ui/dist",
-    "withGlobalTauri": false
+    "distDir": "../ui/dist"
   },
   "package": {
     "productName": "DeskAI",
@@ -13,44 +12,26 @@
   "tauri": {
     "allowlist": {
       "all": false,
-      "shell": {
-        "all": false,
-        "execute": false,
-        "open": false
-      },
       "fs": {
-        "all": false,
-        "readFile": true,
-        "writeFile": true,
-        "readDir": true,
-        "createDir": true,
-        "removeDir": false,
-        "removeFile": false,
-        "renameFile": true,
-        "exists": true,
-        "scope": ["$APPDATA/deskai/out/*", "$APPDATA/deskai/documents/*"]
+        "all": true,
+        "scope": ["**"]
       },
       "dialog": {
-        "all": false,
-        "open": true,
-        "save": true
+        "all": true
+      },
+      "shell": {
+        "open": true
       },
       "protocol": {
-        "all": false,
+        "all": true,
         "asset": true,
-        "assetScope": []
-      },
-      "http": {
-        "all": false,
-        "request": false
-      },
-      "notification": {
-        "all": false
+        "assetScope": ["**"]
       }
     },
     "bundle": {
       "active": true,
-      "targets": ["nsis"],
+      "category": "Productivity",
+      "copyright": "2025 DeskAI Team",
       "identifier": "com.deskai.app",
       "icon": [
         "icons/32x32.png",
@@ -58,20 +39,31 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "longDescription": "DeskAI - 100% offline AI desktop assistant",
+      "shortDescription": "Offline AI Assistant",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
     },
     "security": {
       "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
     },
+    "updater": {
+      "active": false
+    },
     "windows": [
       {
         "fullscreen": false,
+        "height": 700,
         "resizable": true,
-        "title": "DeskAI - Offline Meta-Agent",
-        "width": 1000,
-        "height": 800,
-        "minWidth": 800,
-        "minHeight": 600
+        "title": "DeskAI",
+        "width": 1100,
+        "center": true,
+        "url": "index.html"
       }
     ]
   }

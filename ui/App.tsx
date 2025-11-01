@@ -1,17 +1,6 @@
-import React, { useState } from 'react';
-<<<<<<< HEAD
+import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/tauri';
-import './App.css';
-=======
-import RequestInput from './components/RequestInput';
-import ResponseDisplay from './components/ResponseDisplay';
-import SecretaryDashboard from './components/SecretaryDashboard';
-import WritingEditor from './components/WritingEditor';
-import DocumentProcessor from './components/DocumentProcessor';
-import FileManager from './components/FileManager';
-import OCRViewer from './components/OCRViewer';
-import HandwritingRecognizer from './components/HandwritingRecognizer';
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
+import './app.css';
 
 interface AgentResponse {
   result: string;
@@ -20,7 +9,6 @@ interface AgentResponse {
   deterministic: boolean;
 }
 
-<<<<<<< HEAD
 interface FileResult {
   name: string;
   path: string;
@@ -28,19 +16,81 @@ interface FileResult {
   size?: number;
 }
 
-=======
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
+interface OllamaStatus {
+  installed: boolean;
+  running: boolean;
+  message: string;
+}
+
 const App: React.FC = () => {
   const [response, setResponse] = useState<AgentResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'agent' | 'secretary'>('agent');
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
-<<<<<<< HEAD
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FileResult[]>([]);
   const [ocrResults, setOcrResults] = useState<Map<string, string>>(new Map());
   const [ocrSearchQuery, setOcrSearchQuery] = useState('');
+  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null);
+  const [query, setQuery] = useState('');
+  const [selectedModel, setSelectedModel] = useState('qwen2.5:7b');
+
+  // Check Ollama status on startup
+  useEffect(() => {
+    checkOllamaStatus();
+  }, []);
+
+  const checkOllamaStatus = async () => {
+    try {
+      const status = await invoke<OllamaStatus>('check_ollama_status');
+      setOllamaStatus(status);
+    } catch (err) {
+      console.error('Failed to check Ollama status:', err);
+    }
+  };
+
+  const startOllama = async () => {
+    try {
+      setLoading(true);
+      await invoke<string>('start_ollama');
+      setTimeout(checkOllamaStatus, 3000);
+    } catch (err) {
+      setError(err as string);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuery = async () => {
+    if (!query.trim()) return;
+    
+    setLoading(true);
+    setError(null);
+    setResponse(null);
+    
+    // Safety timeout - force stop loading after 2 minutes
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+      setError('Query timed out after 2 minutes. Please try again with a simpler question.');
+    }, 120000);
+    
+    try {
+      const resultString = await invoke<string>('process_request', { 
+        query,
+        model: selectedModel 
+      });
+      clearTimeout(safetyTimeout);
+      const result = JSON.parse(resultString) as AgentResponse;
+      setResponse(result);
+      setQuery(''); // Clear input after successful query
+    } catch (err) {
+      clearTimeout(safetyTimeout);
+      setError(typeof err === 'string' ? err : JSON.stringify(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileSearch = async () => {
     setLoading(true);
@@ -65,7 +115,6 @@ const App: React.FC = () => {
 
   const handleOCR = async () => {
     try {
-      // Open file picker
       const { open } = await import('@tauri-apps/api/dialog');
       const selected = await open({
         multiple: false,
@@ -97,7 +146,6 @@ const App: React.FC = () => {
     setOcrResults(new Map());
     
     try {
-      // Search for image files
       const imageExtensions = ['png', 'jpg', 'jpeg', 'bmp', 'gif'];
       const allResults: FileResult[] = [];
       
@@ -108,10 +156,9 @@ const App: React.FC = () => {
       
       setSearchResults(allResults);
       
-      // Process OCR on found images
       const newOcrResults = new Map<string, string>();
       
-      for (const file of allResults.slice(0, 20)) { // Limit to first 20 images
+      for (const file of allResults.slice(0, 20)) {
         try {
           const text = await invoke<string>('extract_text_from_image', { imagePath: file.path });
           newOcrResults.set(file.path, text);
@@ -145,58 +192,21 @@ const App: React.FC = () => {
       });
     } catch (err) {
       setError(err as string);
-=======
-
-  // Available models (in production, this would come from backend)
-  const availableModels = ['qwen2.5:7b', 'llama2:7b', 'mistral:7b'];
-
-  const handleSubmit = async (query: string, model: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // In production, this would call the backend API via Tauri
-      // For now, simulate with deterministic response
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const mockResponse: AgentResponse = {
-        result: `[${model}] Processing: "${query}"\n\nThis is an offline deterministic response. In production, this would connect to your local model runner.`,
-        route: `model:${model}`,
-        toolsUsed: query.toLowerCase().includes('calculate') ? ['calculator'] : [],
-        deterministic: true
-      };
-
-      setResponse(mockResponse);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
     } finally {
       setLoading(false);
     }
   };
 
-<<<<<<< HEAD
   const filteredOCRResults = () => {
     if (!ocrSearchQuery) return Array.from(ocrResults.entries());
     
     return Array.from(ocrResults.entries()).filter(([_, text]) =>
       text.toLowerCase().includes(ocrSearchQuery.toLowerCase())
     );
-=======
-  const handleToolExecution = async (toolName: string, params: any): Promise<any> => {
-    // In production, this would call the backend via Tauri
-    // For now, return mock response
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({ success: true, message: 'Tool executed (mock)' });
-      }, 500);
-    });
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
   };
 
   const renderSecretaryTool = () => {
     switch (selectedTool) {
-<<<<<<< HEAD
       case 'file_search':
         return (
           <div className="tool-panel">
@@ -313,26 +323,11 @@ const App: React.FC = () => {
 
       default:
         return <p>Select a tool from the left</p>;
-=======
-      case 'writing':
-        return <WritingEditor onExecute={handleToolExecution} />;
-      case 'document_processor':
-        return <DocumentProcessor onExecute={handleToolExecution} />;
-      case 'file_manager':
-        return <FileManager onExecute={handleToolExecution} />;
-      case 'ocr':
-        return <OCRViewer onExecute={handleToolExecution} />;
-      case 'handwriting':
-        return <HandwritingRecognizer onExecute={handleToolExecution} />;
-      default:
-        return <SecretaryDashboard onToolSelect={setSelectedTool} />;
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
     }
   };
 
   return (
     <div className="app">
-<<<<<<< HEAD
       <header>
         <h1>DeskAI</h1>
         <nav>
@@ -341,11 +336,91 @@ const App: React.FC = () => {
         </nav>
       </header>
 
+      {ollamaStatus && !ollamaStatus.running && (
+        <div className="warning-banner">
+          ⚠️ {ollamaStatus.message}
+          {ollamaStatus.installed && (
+            <button onClick={startOllama} disabled={loading}>
+              Start Ollama
+            </button>
+          )}
+          {!ollamaStatus.installed && (
+            <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer">
+              Download Ollama
+            </a>
+          )}
+        </div>
+      )}
+
       <main>
         {activeView === 'agent' ? (
           <div className="agent-view">
-            {/* Agent interface */}
-            <p>Agent view - Query your AI models</p>
+            <h2>AI Agent - Query your Local Models</h2>
+            
+            <div className="model-selector">
+              <label htmlFor="model-select">Select Model:</label>
+              <select 
+                id="model-select" 
+                value={selectedModel} 
+                onChange={(e) => setSelectedModel(e.target.value)}
+              >
+                <option value="qwen2.5:7b">Qwen 2.5 7B</option>
+                <option value="granite3.1-dense:8b">Granite 3.1 Dense 8B</option>
+                <option value="llama3.2:3b">Llama 3.2 3B</option>
+                <option value="deepseek-r1:8b">DeepSeek R1 8B</option>
+                <option value="gemma3:12b">Gemma 3 12B</option>
+                <option value="aya-expanse">Aya Expanse</option>
+                <option value="qwen2.5-coder:7b">Qwen 2.5 Coder 7B</option>
+                <option value="llama3">Llama 3</option>
+              </select>
+            </div>
+
+            <div className="query-input">
+              <textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.ctrlKey && !loading) {
+                    handleQuery();
+                  }
+                }}
+                placeholder="Ask your AI anything... (Ctrl+Enter to send)"
+                rows={4}
+                disabled={loading}
+              />
+              <div className="button-group">
+                <button onClick={handleQuery} disabled={loading || !query.trim()}>
+                  {loading ? '⏳ Processing...' : '🚀 Send Query'}
+                </button>
+                {loading && (
+                  <button onClick={() => { setLoading(false); setError('Query cancelled by user'); }} className="cancel-btn">
+                    ❌ Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {error && (
+              <div className="error-message">
+                ❌ <strong>Error:</strong> {error}
+              </div>
+            )}
+
+            {response && (
+              <div className="response-container">
+                <div className="response-header">
+                  <strong>Response from {response.route}:</strong>
+                  {response.toolsUsed.length > 0 && (
+                    <span className="tools-used">
+                      Tools: {response.toolsUsed.join(', ')}
+                    </span>
+                  )}
+                </div>
+                <div className="response-content">
+                  <pre>{response.result}</pre>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="secretary-view">
@@ -366,71 +441,6 @@ const App: React.FC = () => {
 
         {error && <div className="error">{error}</div>}
       </main>
-=======
-      <header className="app-header">
-        <h1>🤖 DeskAI</h1>
-        <p className="subtitle">100% Offline Meta-Agent with Personal Secretary</p>
-        
-        <div className="view-switcher">
-          <button 
-            className={activeView === 'agent' ? 'active' : ''}
-            onClick={() => setActiveView('agent')}
-          >
-            Agent
-          </button>
-          <button 
-            className={activeView === 'secretary' ? 'active' : ''}
-            onClick={() => setActiveView('secretary')}
-          >
-            Secretary Tools
-          </button>
-        </div>
-      </header>
-
-      <main className="app-main">
-        {activeView === 'agent' ? (
-          <>
-            <RequestInput
-              onSubmit={handleSubmit}
-              availableModels={availableModels}
-              disabled={loading}
-            />
-
-            {error && (
-              <div className="error-message">
-                <strong>Error:</strong> {error}
-              </div>
-            )}
-
-            {loading && (
-              <div className="loading-message">
-                Processing request...
-              </div>
-            )}
-
-            {response && !loading && (
-              <ResponseDisplay response={response} />
-            )}
-          </>
-        ) : (
-          <div className="secretary-view">
-            {selectedTool && (
-              <button 
-                className="back-button"
-                onClick={() => setSelectedTool(null)}
-              >
-                ← Back to Dashboard
-              </button>
-            )}
-            {renderSecretaryTool()}
-          </div>
-        )}
-      </main>
-
-      <footer className="app-footer">
-        <p>🔒 All processing happens locally on your device</p>
-      </footer>
->>>>>>> 4548ebb8f1fa32802dbc65903bff956d62fd4c28
     </div>
   );
 };
