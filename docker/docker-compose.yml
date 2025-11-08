@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: docubrain
+      POSTGRES_USER: docbrain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-docbrain123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docbrain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - docubrain
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - docubrain
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: docubrain
+      POSTGRES_USER: docbrain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-docbrain123}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_SECURE: "false"
+      WATCH_FOLDER: /app/watch
+      OLLAMA_URL: http://192.168.1.78:11434/api/generate
+    volumes:
+      - watch_folder:/app/watch
+      - documents_folder:/app/documents
+      - processed_folder:/app/processed
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "0.0.0.0:8501:8501"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - docubrain
+
+  router:
+    build:
+      context: ../router
+      dockerfile: Dockerfile
+    environment:
+      # Point to Ollama on the host by default; override via env if needed
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      # Path to shared model configuration
+      MODEL_CONFIG_PATH: /config/models.json
+      OLLAMA_TIMEOUT_SECONDS: "120"
+    volumes:
+      - ../config:/config:ro
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - docubrain
+
+networks:
+  docubrain:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  watch_folder:
+  documents_folder:
+  processed_folder:

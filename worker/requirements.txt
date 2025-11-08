@@ -1,0 +1,11 @@
+paddleocr==2.7.0
+pymupdf==1.23.21
+watchdog==3.0.0
+psycopg2-binary==2.9.7
+minio==7.1.15
+python-dotenv==1.0.0
+sentence-transformers==2.2.2
+scikit-learn==1.3.0
+numpy==1.24.3
+torch==2.1.0
+transformers==4.35.0

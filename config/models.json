@@ -1,0 +1,15 @@
+{
+  "models": [
+    "phi3:mini",
+    "mistral:7b",
+    "qwen2:7b"
+  ],
+  "tier": "B",
+  "system_info": {
+    "ram_gb": 16.0,
+    "disk_gb": 40.0,
+    "gpu_available": false,
+    "gpu_memory_gb": 0.0
+  },
+  "generated_at_utc": null
+}

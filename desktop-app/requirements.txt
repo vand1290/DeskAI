@@ -1,0 +1,19 @@
+# Desktop App Requirements
+customtkinter==5.2.2
+PyQt6==6.6.1
+PyQt6-Qt6==6.6.1
+pillow==10.1.0
+requests==2.31.0
+
+# Document Processing
+PyPDF2==3.0.1
+python-docx==1.1.0
+python-pptx==0.6.23
+openpyxl==3.1.2
+pandas==2.1.3
+
+# Database
+# sqlite3 is built into Python (not a pip package)
+
+# AI Integration
+# ollama - optional package, not needed (we use requests directly)

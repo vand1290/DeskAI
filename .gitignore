@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+.venv/
+.venv311/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Project specific
+*.spec
+dist/
+build/
+.env
+*.log
+documents/
+processed/
+watch/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Ollama/Local models
+.ollama/
+
+# Docker
+docker-compose.override.yml
+
+# Build outputs
+*.exe
+*.msi
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Temporary files
+*.tmp
+*.bak
+Untitled-1.txt

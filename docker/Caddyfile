@@ -1,0 +1,15 @@
+{
+    email admin@docbrain.local
+}
+
+:443 {
+    tls internal
+    basicauth / {
+        docbrain {$BASIC_AUTH_HASH}
+    }
+    reverse_proxy http://ui:8501
+}
+
+http://localhost {
+    redir https://localhost{url}
+}
