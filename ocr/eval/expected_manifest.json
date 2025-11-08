@@ -1,0 +1,7 @@
+{
+  "bad_case_1.png": "Sample invoice from bad case 1",
+  "bad_case_2.png": "Handwritten text sample",
+  "bad_case_3.png": "Tilted document at angle",
+  "bad_case_4.png": "Low contrast dark image",
+  "bad_case_5.png": "Mobile photo with glare"
+}

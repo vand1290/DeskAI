@@ -1,0 +1,27 @@
+# DeskAI OCR Requirements
+# Install: pip install -r ocr/requirements.txt
+
+# Core ML
+onnxruntime>=1.16.0              # ONNX model inference
+opencv-python>=4.8.0             # Image processing
+numpy>=1.24.0                    # Numerical computing
+Pillow>=9.5.0                    # Image I/O
+
+# Recognition models (requires manual download to 02_models_data/)
+# torch>=2.0.0  # Optional: if using HuggingFace transformers instead of ONNX
+# transformers>=4.30.0  # Optional
+
+# PDF support
+PyMuPDF>=1.23.0                  # PDF rendering
+
+# Text processing
+python-Levenshtein>=0.21.0       # CER/WER metrics
+PyYAML>=6.0                      # Config files
+
+# Desktop app integration
+requests>=2.31.0                 # HTTP requests to router/Ollama
+psutil>=5.9.0                    # System monitoring
+
+# Development/evaluation
+pytest>=7.4.0
+pytest-cov>=4.1.0

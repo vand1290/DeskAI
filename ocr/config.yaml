@@ -1,0 +1,44 @@
+# DeskAI OCR Configuration
+# Copy to config.yaml and adjust for your use case
+
+preprocess:
+  binarize_method: adaptive  # "adaptive" or "otsu"
+  adaptive_block_size: 11    # Kernel size for adaptive binarization (must be odd)
+  adaptive_c: 2              # Constant subtracted from weighted mean
+  invert_threshold_mean: 127 # If image mean < this, invert (0-255)
+  enable_dewarp: true        # Light perspective correction
+  dewarp_strength: 0.02      # How aggressive is dewarp (0-1)
+  height_px: 32              # Normalized line height
+  width_px: 512              # Normalized line width
+  gaussian_blur: 1           # Blur kernel (0 = disabled, must be odd)
+
+detect:
+  method: craft              # "craft" or "dbnet"
+  confidence_threshold: 0.5  # Min confidence for detected boxes
+
+recognize:
+  trocr_onnx_path: null      # Path to TrOCR ONNX model (or null = use placeholder)
+  parseq_onnx_path: null     # Path to PARSeq ONNX model (or null = use placeholder)
+  use_onnx: true             # Use ONNX if models available
+
+router:
+  trocr_min_conf: 0.7        # Use TrOCR if conf >= this
+  parseq_bias: 0.1           # Boost PARSeq by this if TrOCR fails
+
+postprocess:
+  locale: en_US              # Language locale
+  currency_symbols:
+    "$": "USD"
+    "€": "EUR"
+    "£": "GBP"
+  enable_language_guess: true  # Auto-detect language
+
+eval:
+  manifest_path: ocr/eval/expected_manifest.json
+
+# KPI Targets
+kpis:
+  line_cer_max: 0.08         # Max 8% Character Error Rate
+  field_accuracy_min: 0.98   # Min 98% field accuracy
+  latency_cpu_max_sec: 6.0   # Max 6s on CPU @ A4 300DPI
+  latency_gpu_max_sec: 1.5   # Max 1.5s on GPU

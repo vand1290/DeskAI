@@ -1,10 +1,11 @@
 """
-Document processor - extracts text from various file formats
+Document processor - extracts text from various file formats and images via OCR
 """
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 import json
+import logging
 
 # Document libraries
 from PyPDF2 import PdfReader
@@ -12,6 +13,15 @@ from docx import Document as DocxDocument
 from pptx import Presentation
 import openpyxl
 import pandas as pd
+
+# OCR support
+try:
+    from ocr.cli import process_image, process_pdf
+    HAS_OCR = True
+except ImportError:
+    HAS_OCR = False
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentProcessor:
@@ -139,6 +149,82 @@ class DocumentProcessor:
                     sheet_text.append(row_text)
                     
             text_parts.append("\n".join(sheet_text))
+            
+        return "\n\n".join(text_parts)
+    
+    def _extract_from_image_ocr(self, file_path: str) -> Dict[str, Any]:
+        """
+        Extract text from image using OCR.
+        
+        Returns:
+            {
+                "text": str,
+                "confidence": float,
+                "method": "ocr",
+                "boxes": [...],
+                "language": str
+            }
+        """
+        if not HAS_OCR:
+            logger.warning("OCR not available; skipping image processing")
+            return {
+                "text": "",
+                "confidence": 0.0,
+                "method": "ocr",
+                "error": "OCR module not installed"
+            }
+        
+        try:
+            result = process_image(file_path)
+            
+            if "error" in result:
+                logger.error(f"OCR error: {result['error']}")
+                return result
+            
+            return {
+                "text": result.get("text", ""),
+                "confidence": result.get("confidence", 0.0),
+                "method": "ocr",
+                "lines": result.get("lines", []),
+                "language": result.get("metadata", {}).get("language", "en")
+            }
+        except Exception as e:
+            logger.error(f"Error processing image with OCR: {e}")
+            return {
+                "text": "",
+                "confidence": 0.0,
+                "method": "ocr",
+                "error": str(e)
+            }
+    
+    def _extract_from_pdf_ocr(self, file_path: str, dpi: int = 150) -> str:
+        """
+        Extract text from PDF using OCR.
+        
+        Args:
+            file_path: Path to PDF
+            dpi: Resolution for rendering
+        
+        Returns:
+            Combined text from all pages
+        """
+        if not HAS_OCR:
+            logger.warning("OCR not available; cannot process PDF")
+            return ""
+        
+        try:
+            results = process_pdf(file_path, dpi=dpi)
+            text_parts = []
+            
+            for result in results:
+                if "error" not in result:
+                    page_num = result.get("page", 0)
+                    text_parts.append(f"--- Page {page_num} ---\n{result.get('text', '')}")
+            
+            return "\n\n".join(text_parts)
+        except Exception as e:
+            logger.error(f"Error processing PDF with OCR: {e}")
+            return f"Error: {e}"
             
         return "\n\n".join(text_parts)
         
