@@ -5,7 +5,7 @@ Preferred flow:
 - If ROUTER_URL is set (or reachable on http://localhost:8000), use router endpoints
     - /route for generation
     - /models for installed models
-- Otherwise, fall back to direct Ollama (OLLAMA_URL env or default http://localhost:11434)
+- Otherwise, fall back to direct Ollama (OLLAMA_URL env or default http://localhost:12345)
 """
 import os
 import requests
@@ -19,7 +19,7 @@ class AIChat:
     def __init__(self, ollama_url: Optional[str] = None, router_url: Optional[str] = None):
         # Configurable endpoints via env
         self.router_url = router_url or os.getenv("ROUTER_URL", "http://localhost:8000")
-        self.ollama_url = ollama_url or os.getenv("OLLAMA_URL", "http://localhost:11434")
+        self.ollama_url = ollama_url or os.getenv("OLLAMA_URL", "http://localhost:12345")
         self.api_url = f"{self.ollama_url}/api/generate"
         
     def query(self, question: str, model: str, database, use_context: bool = True) -> str:

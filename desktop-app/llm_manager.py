@@ -12,12 +12,12 @@ import os
 class LLMModelManager:
     """Manages available LLM models and model selection"""
     
-    def __init__(self, ollama_host: str = "http://localhost:11434"):
+    def __init__(self, ollama_host: str = "http://localhost:12345"):
         """
         Initialize LLM Model Manager
         
         Args:
-            ollama_host: Ollama API endpoint (default: localhost:11434)
+            ollama_host: Ollama API endpoint (default: localhost:12345)
         """
         self.ollama_host = ollama_host
         self.api_endpoint = f"{ollama_host}/api"
