@@ -12,8 +12,7 @@ app = FastAPI()
 
 #  ============================================================================
 # CRITICAL: For Windows standalone EXE - HARDCODE Ollama connection
-# Do NOT read from environment variable (often misconfigured as 0.0.0.0:11434)
-# NOTE: Port 11434 is blocked by Windows. Using 12345 instead.
+# Docker runs Ollama on port 12345 (mapped from container port 11434)
 # ==========================================================================
 OLLAMA_HOST = "http://localhost:12345"  # HARDCODED - do not change
 

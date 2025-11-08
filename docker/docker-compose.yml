@@ -1,4 +1,17 @@
 services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: docubrain-ollama
+    ports:
+      - "12345:11434"
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - docubrain
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -73,8 +86,8 @@ services:
       context: ../router
       dockerfile: Dockerfile
     environment:
-      # Point to Ollama on the host by default; override via env if needed
-      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      # Point to Ollama container (internal Docker network uses port 11434)
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
       # Path to shared model configuration
       MODEL_CONFIG_PATH: /config/models.json
       OLLAMA_TIMEOUT_SECONDS: "120"
@@ -95,6 +108,7 @@ networks:
 volumes:
   postgres_data:
   minio_data:
+  ollama_data:
   watch_folder:
   documents_folder:
   processed_folder:
